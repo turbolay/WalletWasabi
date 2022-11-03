@@ -39,7 +39,6 @@ public class WhaleCoinjoinTests
 	[InlineData(1, 0.0005, 0.05, 6789)]
 	[InlineData(1, 0.001, 0.1, 1234)]
 	[InlineData(1, 0.0005, 0.2, 1234)]
-	[InlineData(1, 0.0005, 0.04, 1234)]
 	public void ScoreForWhales(double whaleAmountBtc, double otherClientsAmountMin, double otherClientsAmountMax, int randomSeed)
 	{
 		var nbOtherClients = 30;
@@ -49,7 +48,6 @@ public class WhaleCoinjoinTests
 		var anonScoreTarget = 100;
 		var maxTestRounds = 1000;
 		var displayProgressEachNRounds = int.MaxValue;
-		var displayWhaleCoinsOnFinish = true;
 
 		var analyser = new BlockchainAnalyzer();
 
