@@ -580,7 +580,8 @@ public class CoinJoinClient
 		int anonScoreTarget,
 		bool redCoinIsolation,
 		Money liquidityClue,
-		WasabiRandom rnd)
+		WasabiRandom rnd,
+		bool master = true)
 	{
 		// Sanity check.
 		if (liquidityClue <= Money.Zero)
@@ -634,9 +635,25 @@ public class CoinJoinClient
 
 		Logger.LogDebug($"{nameof(allowedNonPrivateCoins)}: {allowedNonPrivateCoins.Count} coins, valued at {Money.Satoshis(allowedNonPrivateCoins.Sum(x => x.Amount)).ToString(false, true)} BTC.");
 
-		int inputCount = Math.Min(
-			privateCoins.Length + allowedNonPrivateCoins.Count,
-			consolidationMode ? MaxInputsRegistrableByWallet : GetInputTarget(rnd));
+		var inputCount = 0;
+		if (master)
+		{
+			// How many inputs do we want to provide to the mix?
+			var utxoCount = allowedNonPrivateCoins.Count + privateCoins.Length;
+			var minUtxoCountTarget = (int)((allowedNonPrivateCoins.Sum(x => x.Amount) + privateCoins.Sum(x => x.Amount)) / liquidityClue.Satoshi);
+			Logger.LogDebug($"Derived {nameof(minUtxoCountTarget)} from balance and expected liquidity: {minUtxoCountTarget}.");
+
+			inputCount = Math.Min(
+				privateCoins.Length + allowedNonPrivateCoins.Count,
+				consolidationMode ? MaxInputsRegistrableByWallet : GetInputTarget(rnd, utxoCount, minUtxoCountTarget));
+		}
+		else
+		{
+			inputCount = Math.Min(
+				privateCoins.Length + allowedNonPrivateCoins.Count,
+				consolidationMode ? MaxInputsRegistrableByWallet : GetInputTarget(rnd));
+		}
+
 		if (consolidationMode)
 		{
 			Logger.LogDebug($"Consolidation mode is on.");
@@ -742,14 +759,27 @@ public class CoinJoinClient
 
 		int sameTxAllowance = GetRandomBiasedSameTxAllowance(rnd, percent);
 
-		var winner = new List<SmartCoin>
+		var winner = new List<SmartCoin>();
+		var enumerator = Enumerable.Empty<SmartCoin?>();
+		if (master)
 		{
-			selectedNonPrivateCoin
-		};
-		foreach (var coin in finalCandidate
-			.Except(new[] { selectedNonPrivateCoin })
-			.OrderBy(x => x.HdPubKey.AnonymitySet)
-			.ThenByDescending(x => x.Amount))
+			// Fix selectedNonPrivateCoin on master as its a clear issue unrelated with #8938
+			winner.Add(selectedNonPrivateCoin);
+			enumerator = finalCandidate
+				.Except(new[] { selectedNonPrivateCoin })
+				.OrderBy(x => x.HdPubKey.AnonymitySet)
+				.ThenByDescending(x => x.Amount);
+		}
+		else
+		{
+			winner.Add(selectedNonPrivateCoin);
+			enumerator = finalCandidate
+				.Except(new[] { selectedNonPrivateCoin })
+				.OrderBy(x => x.HdPubKey.AnonymitySet)
+				.ThenByDescending(x => x.Amount);
+		}
+
+		foreach (var coin in enumerator)
 		{
 			// If the coin is coming from same tx, then check our allowance.
 			if (winner.Any(x => x.TransactionId == coin.TransactionId))
@@ -766,26 +796,34 @@ public class CoinJoinClient
 			}
 		}
 
-		double winnerAnonLoss = GetAnonLoss(winner);
-		while ((winner.Sum(x => x.Amount) > liquidityClue) && (winnerAnonLoss > MaxWeightedAnonLoss))
+		if (!master)
 		{
-			List<SmartCoin> bestReducedWinner = winner;
-			var bestAnonLoss = winnerAnonLoss;
-
-			foreach (SmartCoin coin in winner.Except(new[] { selectedNonPrivateCoin }))
+			double winnerAnonLoss = GetAnonLoss(winner);
+			while ((winner.Sum(x => x.Amount) > liquidityClue) && (winnerAnonLoss > MaxWeightedAnonLoss))
 			{
-				var reducedWinner = winner.Except(new[] { coin });
-				var anonLoss = GetAnonLoss(reducedWinner);
+				List<SmartCoin> bestReducedWinner = winner;
+				var bestAnonLoss = winnerAnonLoss;
 
-				if (anonLoss <= bestAnonLoss)
+				foreach (SmartCoin coin in winner.Except(new[] { selectedNonPrivateCoin }))
 				{
-					bestAnonLoss = anonLoss;
-					bestReducedWinner = reducedWinner.ToList();
-				}
-			}
+					var reducedWinner = winner.Except(new[] { coin });
+					var anonLoss = GetAnonLoss(reducedWinner);
 
-			winner = bestReducedWinner;
-			winnerAnonLoss = bestAnonLoss;
+					if (anonLoss <= bestAnonLoss)
+					{
+						bestAnonLoss = anonLoss;
+						bestReducedWinner = reducedWinner.ToList();
+					}
+				}
+
+				if (winner == bestReducedWinner)
+				{
+					break;
+				}
+
+				winner = bestReducedWinner;
+				winnerAnonLoss = bestAnonLoss;
+			}
 		}
 
 		if (winner.Count != finalCandidate.Count())
@@ -897,10 +935,20 @@ public class CoinJoinClient
 	/// Note: random biasing is applied.
 	/// </summary>
 	/// <returns>Desired input count.</returns>
-	private static int GetInputTarget(WasabiRandom rnd)
+	private static int GetInputTarget(WasabiRandom rnd, int utxoCount = 0, int minUtxoCountTarget = 0)
 	{
 		// Until our UTXO count target isn't reached, let's register as few coins as we can to reach it.
-		int targetInputCount = MaxInputsRegistrableByWallet;
+		int targetInputCount = 0;
+		if (utxoCount == 0 && minUtxoCountTarget == 0)
+		{
+			targetInputCount = MaxInputsRegistrableByWallet;
+		}
+		else
+		{
+			// Let's target to have a only 1 UTXO in our wallet, unless it's specified otherwise.
+			var utxoCountTarget = Math.Max(1, minUtxoCountTarget);
+			targetInputCount = utxoCount < utxoCountTarget ? 1 : MaxInputsRegistrableByWallet;
+		}
 
 		var distance = new Dictionary<int, int>();
 		for (int i = 1; i <= MaxInputsRegistrableByWallet; i++)
