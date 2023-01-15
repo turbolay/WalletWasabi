@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Security;
@@ -5,6 +6,7 @@ using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
+using Nito.AsyncEx;
 using WalletWasabi.Extensions;
 using WalletWasabi.Helpers;
 using WalletWasabi.Logging;
@@ -25,6 +27,10 @@ public class TorTcpConnectionFactory
 	private static readonly VersionMethodRequest VersionMethodNoAuthRequired = new(methods: new MethodsField(MethodField.NoAuthenticationRequired));
 	private static readonly VersionMethodRequest VersionMethodUsernamePassword = new(methods: new MethodsField(MethodField.UsernamePassword));
 
+	private static int CounterAcquireLock = 0;
+	
+	private AsyncLock StreamWriterLockAsy { get; } = new();
+	
 	/// <param name="endPoint">Tor SOCKS5 endpoint.</param>
 	public TorTcpConnectionFactory(EndPoint endPoint)
 	{
@@ -74,9 +80,11 @@ public class TorTcpConnectionFactory
 
 		try
 		{
+			Stopwatch sw = new();
 			tcpClient = await TcpClientSocks5Connector.ConnectAsync(TorSocks5EndPoint, cancellationToken).ConfigureAwait(false);
 
 			transportStream = tcpClient.GetStream();
+			
 			await HandshakeAsync(tcpClient, circuit, cancellationToken).ConfigureAwait(false);
 			await ConnectToDestinationAsync(tcpClient, host, port, cancellationToken).ConfigureAwait(false);
 
@@ -253,12 +261,12 @@ public class TorTcpConnectionFactory
 		}
 		catch (OperationCanceledException)
 		{
-			Logger.LogTrace($"Connecting to destination '{host}:{port}' was canceled.");
+			Logger.LogError($"Connecting to destination '{host}:{port}' was canceled.");
 			throw;
 		}
 		catch (TorException e)
 		{
-			Logger.LogTrace($"Exception occurred when connecting to '{host}:{port}'.", e);
+			Logger.LogError($"Exception occurred when connecting to '{host}:{port}'.", e);
 			throw;
 		}
 		finally
@@ -284,7 +292,16 @@ public class TorTcpConnectionFactory
 			byte[] dataToSend = request.ToBytes();
 
 			// Write data to the stream.
+			Stopwatch sw = new();
+			Stopwatch sw2 = new();
+			CounterAcquireLock++;
+			sw.Start();
+			CounterAcquireLock--;
+			sw.Stop();
+			sw2.Start();
 			await stream.WriteAsync(dataToSend.AsMemory(0, dataToSend.Length), cancellationToken).ConfigureAwait(false);
+			sw2.Stop();
+			Logger.LogWarning($"Wait lock: {CounterAcquireLock} -> Acquired in {sw.Elapsed.TotalMilliseconds} ms -> Request in {sw2.Elapsed.TotalMilliseconds} ");
 			await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
 
 			if (request is VersionMethodRequest or UsernamePasswordRequest)
@@ -293,7 +310,9 @@ public class TorTcpConnectionFactory
 			}
 			else if (request is TorSocks5Request)
 			{
-				return await ReadRequestResponseAsync(stream, cancellationToken).ConfigureAwait(false);
+				
+				var tmp = await ReadRequestResponseAsync(stream, cancellationToken).ConfigureAwait(false);
+				return tmp;
 			}
 			else
 			{

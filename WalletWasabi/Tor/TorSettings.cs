@@ -4,6 +4,7 @@ using System.Net;
 using System.Runtime.InteropServices;
 using WalletWasabi.Extensions;
 using WalletWasabi.Helpers;
+using WalletWasabi.Logging;
 using WalletWasabi.Microservices;
 
 namespace WalletWasabi.Tor;
@@ -100,6 +101,7 @@ public class TorSettings
 			$"--LogTimeGranularity 1",
 			$"--SOCKSPort \"{SocksEndpoint} ExtendedErrors KeepAliveIsolateSOCKSAuth\"",
 			$"--MaxCircuitDirtiness 1800", // 30 minutes. Default is 10 minutes.
+			$"--MaxClientCircuitsPending 124", // Default is 32 minutes.
 			$"--SocksTimeout 30", // Default is 2 minutes.
 			$"--CookieAuthentication 1",
 			$"--ControlPort {port}",
@@ -115,6 +117,7 @@ public class TorSettings
 			arguments.Add($"__OwningControllerProcess {OwningProcessId}");
 		}
 
+		Logger.LogWarning(string.Join(" ", arguments));
 		return string.Join(" ", arguments);
 	}
 }

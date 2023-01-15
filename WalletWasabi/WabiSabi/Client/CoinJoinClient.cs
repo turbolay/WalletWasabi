@@ -1025,6 +1025,7 @@ public class CoinJoinClient
 	/// <returns>Desired input count.</returns>
 	private static int GetInputTarget(WasabiRandom rnd)
 	{
+		return MaxInputsRegistrableByWallet;
 		// Until our UTXO count target isn't reached, let's register as few coins as we can to reach it.
 		int targetInputCount = MaxInputsRegistrableByWallet;
 

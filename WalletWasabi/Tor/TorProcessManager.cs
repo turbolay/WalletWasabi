@@ -301,7 +301,7 @@ public class TorProcessManager : IAsyncDisposable
 		Logger.LogInfo("Starting Tor process…");
 		ProcessAsync process = new(startInfo);
 		process.Start();
-
+		//process.PriorityBoostEnabled = true;
 		return process;
 	}
 

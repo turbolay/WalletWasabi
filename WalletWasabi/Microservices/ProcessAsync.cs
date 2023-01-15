@@ -46,6 +46,14 @@ public class ProcessAsync : IDisposable
 	/// <inheritdoc cref="Process.StandardOutput"/>
 	public StreamReader StandardOutput => Process.StandardOutput;
 
+	/// <inheritdoc cref="Process.PriorityClass"/>
+	
+	public bool PriorityBoostEnabled
+	{
+		get => Process.PriorityBoostEnabled;
+		set => Process.PriorityBoostEnabled = value;
+	}
+	
 	/// <inheritdoc cref="Process.Start()"/>
 	public void Start()
 	{

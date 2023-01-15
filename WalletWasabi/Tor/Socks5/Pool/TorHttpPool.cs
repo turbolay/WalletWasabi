@@ -64,6 +64,8 @@ public class TorHttpPool : IAsyncDisposable
 	/// <remarks>This parameter affects maximum parallelization for given URI host.</remarks>
 	public const int MaxConnectionsPerHost = 1000;
 
+	public static int CounterFirstConnectionsLock = 0;
+	public static int CounterSecondConnectionsLock = 0;
 	private static readonly UnboundedChannelOptions Options = new()
 	{
 		SingleWriter = false,
@@ -198,7 +200,7 @@ public class TorHttpPool : IAsyncDisposable
 				}
 				catch (TorConnectionWriteException e)
 				{
-					Logger.LogTrace($"['{connection}'] TCP connection from the pool is probably dead as we can't write data to the connection.", e);
+					Logger.LogError($"['{connection}'] TCP connection from the pool is probably dead as we can't write data to the connection.", e);
 
 					if (i == attemptsNo)
 					{
@@ -208,20 +210,20 @@ public class TorHttpPool : IAsyncDisposable
 				}
 				catch (TorConnectionReadException e)
 				{
-					Logger.LogTrace($"['{connection}'] Could not get/read an HTTP response from Tor.", e);
+					Logger.LogError($"['{connection}'] Could not get/read an HTTP response from Tor.", e);
 
 					throw new HttpRequestException("Failed to get/read an HTTP response from Tor.", e);
 				}
 				catch (TorCircuitExpiredException e)
 				{
-					Logger.LogTrace($"['{connection}'] Circuit '{namedCircuit.Name}' has expired and cannot be used again.", e);
+					Logger.LogError($"['{connection}'] Circuit '{namedCircuit.Name}' has expired and cannot be used again.", e);
 
 					throw new HttpRequestException($"Circuit '{namedCircuit.Name}' has expired and cannot be used again.", e);
 				}
 				catch (TorConnectCommandFailedException e) when (e.RepField == RepField.TtlExpired)
 				{
 					// If we get TTL Expired error then wait and retry again, Linux often does this.
-					Logger.LogTrace($"['{connection}'] TTL exception occurred.", e);
+					Logger.LogError($"['{connection}'] TTL exception occurred.", e);
 
 					await Task.Delay(3000, cancellationToken).ConfigureAwait(false);
 
@@ -233,7 +235,7 @@ public class TorHttpPool : IAsyncDisposable
 				}
 				catch (TorConnectionException e)
 				{
-					Logger.LogTrace($"['{connection}'] Tor SOCKS5 connection failed.", e);
+					Logger.LogError($"['{connection}'] Tor SOCKS5 connection failed.", e);
 
 					if (i == attemptsNo)
 					{
@@ -243,7 +245,7 @@ public class TorHttpPool : IAsyncDisposable
 				}
 				catch (IOException e)
 				{
-					Logger.LogTrace($"['{connection}'] Failed to read/write HTTP(s) request.", e);
+					Logger.LogError($"['{connection}'] Failed to read/write HTTP(s) request.", e);
 
 					// NetworkStream may throw IOException.
 					TorConnectionException innerException = new("Failed to read/write HTTP(s) request.", e);
@@ -251,7 +253,7 @@ public class TorHttpPool : IAsyncDisposable
 				}
 				catch (SocketException e) when (e.ErrorCode == (int)SocketError.ConnectionRefused)
 				{
-					Logger.LogTrace($"['{connection}'] Connection was refused.", e);
+					Logger.LogError($"['{connection}'] Connection was refused.", e);
 					TorConnectionException innerException = new("Connection was refused.", e);
 					throw new HttpRequestException("Failed to handle the HTTP request via Tor.", innerException);
 				}
@@ -261,7 +263,7 @@ public class TorHttpPool : IAsyncDisposable
 				}
 				catch (Exception e)
 				{
-					Logger.LogTrace($"['{connection}'] Exception occurred.", e);
+					Logger.LogError($"['{connection}'] Exception occurred.", e);
 					throw;
 				}
 				finally
@@ -285,12 +287,12 @@ public class TorHttpPool : IAsyncDisposable
 		}
 		catch (OperationCanceledException)
 		{
-			Logger.LogTrace($"['{connection}'] Request was canceled: '{request.RequestUri}'.");
+			Logger.LogError($"['{connection}'] Request was canceled: '{request.RequestUri}'.");
 			throw;
 		}
 		catch (Exception e)
 		{
-			Logger.LogTrace($"['{connection}'] Request failed with exception", e);
+			Logger.LogError($"['{connection}'] Request failed with exception", e);
 			OnTorRequestFailed(e);
 			throw;
 		}
@@ -310,6 +312,7 @@ public class TorHttpPool : IAsyncDisposable
 			bool canBeAdded;
 			TorTcpConnection? connection;
 
+			
 			lock (ConnectionsLock)
 			{
 				canBeAdded = GetPoolConnectionNoLock(host, circuit, out connection);
@@ -321,6 +324,7 @@ public class TorHttpPool : IAsyncDisposable
 				}
 			}
 
+			
 			OneOffCircuit? oneOffCircuitToDispose = null;
 
 			INamedCircuit namedCircuit;
@@ -345,6 +349,7 @@ public class TorHttpPool : IAsyncDisposable
 
 				if (canBeAdded)
 				{
+					
 					connection = await CreateNewConnectionAsync(request.RequestUri!, namedCircuit, token).ConfigureAwait(false);
 
 					// Do not dispose.
@@ -376,15 +381,17 @@ public class TorHttpPool : IAsyncDisposable
 
 	private async Task<TorTcpConnection?> CreateNewConnectionAsync(Uri requestUri, INamedCircuit circuit, CancellationToken cancellationToken)
 	{
+		
+		
 		lock (ConnectionsLock)
 		{
 			TorStreamsBeingBuilt[circuit.Name] = null;
 		}
-
 		TorTcpConnection? connection = null;
 
 		try
 		{
+			
 			connection = await TcpConnectionFactory.ConnectAsync(requestUri, circuit, cancellationToken).ConfigureAwait(false);
 			Logger.LogTrace($"[NEW {connection}]['{requestUri}'] Created new Tor SOCKS5 connection.");
 		}
