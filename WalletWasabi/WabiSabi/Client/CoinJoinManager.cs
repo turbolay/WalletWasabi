@@ -503,7 +503,6 @@ public class CoinJoinManager : BackgroundService
 	private async Task<IEnumerable<SmartCoin>> SelectCandidateCoinsAsync(IWallet openedWallet, int bestHeight)
 		=> new CoinsView(await openedWallet.GetCoinjoinCoinCandidatesAsync().ConfigureAwait(false))
 			.Available()
-			.Confirmed()
 			.Where(x => !x.IsImmature(bestHeight))
 			.Where(x => !x.IsBanned)
 			.Where(x => !CoinRefrigerator.IsFrozen(x));
