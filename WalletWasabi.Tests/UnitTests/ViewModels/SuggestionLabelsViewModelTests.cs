@@ -169,8 +169,6 @@ public class SuggestionLabelsViewModelTests
 
 		public string Name => throw new NotSupportedException();
 
-		public IObservable<IChangeSet<TransactionSummary, uint256>> Transactions => throw new NotSupportedException();
-
 		public IWalletBalancesModel Balances => throw new NotSupportedException();
 
 		public IObservable<IChangeSet<IAddress, string>> Addresses => throw new NotSupportedException();

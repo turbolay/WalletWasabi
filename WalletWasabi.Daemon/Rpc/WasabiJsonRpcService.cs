@@ -239,17 +239,15 @@ public class WasabiJsonRpcService : IJsonRpcService
 		var activeWallet = Guard.NotNull(nameof(ActiveWallet), ActiveWallet);
 
 		AssertWalletIsLoaded();
-		var txHistoryBuilder = new TransactionHistoryBuilder(activeWallet);
-		var summary = txHistoryBuilder.BuildHistorySummary();
-		return summary.Select(
+		return activeWallet.GetTransactions().Select(
 			x => new
 			{
-				datetime = x.DateTime,
+				datetime = x.FirstSeen,
 				height = x.Height.Value,
-				amount = x.Amount.Satoshi,
+				amount = x.WalletOutputs.Sum(coin => coin.Amount) - x.WalletInputs.Sum(coin => coin.Amount),
 				label = x.Labels.ToString(),
-				tx = x.TransactionId,
-				islikelycoinjoin = x.IsOwnCoinjoin
+				tx = x.GetHash(),
+				islikelycoinjoin = x.IsOwnCoinjoin()
 			}).ToArray();
 	}
 

@@ -160,13 +160,7 @@ public static class LinqExtensions
 			.OrderBy(x => x.Height)
 			.ThenBy(x => x.BlockIndex)
 			.ThenBy(x => x.FirstSeen);
-
-	public static IOrderedEnumerable<TransactionSummary> OrderByBlockchain(this IEnumerable<TransactionSummary> me)
-		=> me
-			.OrderBy(x => x.Height)
-			.ThenBy(x => x.BlockIndex)
-			.ThenBy(x => x.DateTime);
-
+	
 	public static IEnumerable<string> ToBlockchainOrderedLines(this IEnumerable<SmartTransaction> me)
 		=> me
 			.OrderByBlockchain()

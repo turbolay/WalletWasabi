@@ -141,7 +141,7 @@ public class Wallet : BackgroundService, IWallet
 				walletTransactions.Add(coin.SpenderTransaction);
 			}
 		}
-		return walletTransactions.OrderByBlockchain().ToList();
+		return walletTransactions.DistinctBy(x => x.GetHash()).OrderByBlockchain().ToList();
 	}
 
 	public HdPubKey GetNextReceiveAddress(IEnumerable<string> destinationLabels)

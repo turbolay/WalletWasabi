@@ -11,7 +11,6 @@ using WalletWasabi.Fluent.ViewModels.Wallets.Receive;
 using WalletWasabi.Tests.UnitTests.ViewModels.TestDoubles;
 using WalletWasabi.Wallets;
 using Xunit;
-using TransactionSummary = WalletWasabi.Blockchain.Transactions.TransactionSummary;
 
 namespace WalletWasabi.Tests.UnitTests.ViewModels;
 
@@ -67,8 +66,6 @@ public class ReceiveViewModelTests
 		public bool IsLoggedIn => throw new NotSupportedException();
 
 		public IObservable<WalletState> State => throw new NotSupportedException();
-
-		public IObservable<IChangeSet<TransactionSummary, uint256>> Transactions => throw new NotSupportedException();
 
 		public IObservable<IChangeSet<IAddress, string>> Addresses { get; }
 		public bool IsHardwareWallet => throw new NotSupportedException();

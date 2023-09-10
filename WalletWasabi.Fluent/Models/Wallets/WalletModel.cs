@@ -19,14 +19,11 @@ namespace WalletWasabi.Fluent.Models.Wallets;
 [AutoInterface]
 public partial class WalletModel : ReactiveObject
 {
-	private readonly TransactionHistoryBuilder _historyBuilder;
 	private readonly Lazy<IWalletCoinjoinModel> _coinjoin;
 
 	public WalletModel(Wallet wallet)
 	{
 		Wallet = wallet;
-
-		_historyBuilder = new TransactionHistoryBuilder(Wallet);
 
 		Auth = new WalletAuthModel(this, Wallet);
 		Loader = new WalletLoadWorkflow(Wallet);
@@ -46,11 +43,6 @@ public partial class WalletModel : ReactiveObject
 					  .Concat(relevantTransactionProcessed.SelectMany(_ => GetCoins()))                       // Refresh whenever there's a relevant transaction
 					  .Concat(this.WhenAnyValue(x => x.Settings.AnonScoreTarget).SelectMany(_ => GetCoins())) // Also refresh whenever AnonScoreTarget changes
 					  .ToObservableChangeSet();
-
-		Transactions =
-			Observable.Defer(() => BuildSummary().ToObservable())
-					  .Concat(relevantTransactionProcessed.SelectMany(_ => BuildSummary()))
-					  .ToObservableChangeSet(x => x.TransactionId);
 
 		Addresses =
 			Observable.Defer(() => GetAddresses().ToObservable())
@@ -104,8 +96,6 @@ public partial class WalletModel : ReactiveObject
 
 	public IObservable<WalletState> State { get; }
 
-	public IObservable<IChangeSet<TransactionSummary, uint256>> Transactions { get; }
-
 	public IAddress GetNextReceiveAddress(IEnumerable<string> destinationLabels)
 	{
 		var pubKey = Wallet.GetNextReceiveAddress(destinationLabels);
@@ -129,11 +119,6 @@ public partial class WalletModel : ReactiveObject
 	private IEnumerable<ICoinModel> GetCoins()
 	{
 		return Wallet.Coins.Select(x => new CoinModel(Wallet, x));
-	}
-
-	private IEnumerable<TransactionSummary> BuildSummary()
-	{
-		return _historyBuilder.BuildHistorySummary();
 	}
 
 	private IEnumerable<IAddress> GetAddresses()

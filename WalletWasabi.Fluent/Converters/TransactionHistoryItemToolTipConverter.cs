@@ -24,7 +24,7 @@ public class TransactionHistoryItemToolTipConverter : IValueConverter
 				return vm.ConfirmedToolTip;
 			}
 
-			if (vm.TransactionSummary.TryGetConfirmationTime(out var estimate))
+			if (vm.Transaction.TryGetConfirmationTime(out var estimate))
 			{
 				var friendlyString = TextHelpers.TimeSpanToFriendlyString(estimate.Value);
 				if (friendlyString != "")
