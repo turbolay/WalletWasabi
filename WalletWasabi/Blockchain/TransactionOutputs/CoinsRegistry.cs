@@ -14,6 +14,12 @@ public class CoinsRegistry : ICoinsView
 	private HashSet<SmartCoin> Coins { get; } = new();
 
 	/// <remarks>Guarded by <see cref="Lock"/>.</remarks>
+	private HashSet<uint256> AllSeenTxIds { get; } = new();
+
+	/// <remarks>Guarded by <see cref="Lock"/>.</remarks>
+	private Dictionary<OutPoint, SmartCoin> AllSeenCoins { get; } = new();
+	
+	/// <remarks>Guarded by <see cref="Lock"/>.</remarks>
 	private HashSet<SmartCoin> LatestCoinsSnapshot { get; set; } = new();
 
 	/// <remarks>Guarded by <see cref="Lock"/>.</remarks>
@@ -83,6 +89,8 @@ public class CoinsRegistry : ICoinsView
 			if (!SpentCoins.Contains(coin))
 			{
 				added = Coins.Add(coin);
+				AllSeenTxIds.Add(coin.TransactionId);
+				AllSeenCoins.AddOrReplace(coin.Outpoint, coin);
 				coin.RegisterToHdPubKey();
 				if (added)
 				{
@@ -117,6 +125,31 @@ public class CoinsRegistry : ICoinsView
 		return added;
 	}
 
+	public bool Seen(uint256 txid)
+	{
+		lock (Lock)
+		{
+			return AllSeenTxIds.Contains(txid);
+		}
+	}
+	public SmartCoin[] GetMyInputs(SmartTransaction transaction)
+	{
+		var inputs = transaction.Transaction.Inputs.Select(x => x.PrevOut).ToArray();
+
+		var myInputs = new List<SmartCoin>();
+		lock (Lock)
+		{
+			foreach (var input in inputs)
+			{
+				if (AllSeenCoins.TryGetValue(input, out var coin))
+				{
+					myInputs.Add(coin);
+				}
+			}
+		}
+
+		return myInputs.ToArray();
+	}
 	public ICoinsView Remove(SmartCoin coin)
 	{
 		lock (Lock)
