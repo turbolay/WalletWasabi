@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using NBitcoin;
 using System.Linq;
 using System.Threading;
@@ -9,11 +11,11 @@ using WalletWasabi.BitcoinCore.Mempool;
 
 namespace WalletWasabi.WabiSabi.Backend;
 
-public class CoinJoinMempoolManager : IDisposable
+public class MempoolManager : IDisposable
 {
 	private bool _disposedValue;
 
-	public CoinJoinMempoolManager(ICoinJoinIdStore coinJoinIdStore, MempoolMirror mempoolMirror)
+	public MempoolManager(ICoinJoinIdStore coinJoinIdStore, MempoolMirror mempoolMirror)
 	{
 		CoinJoinIdStore = coinJoinIdStore;
 		MempoolMirror = mempoolMirror;
@@ -23,11 +25,12 @@ public class CoinJoinMempoolManager : IDisposable
 	private ICoinJoinIdStore CoinJoinIdStore { get; }
 	private MempoolMirror MempoolMirror { get; }
 	public ImmutableArray<uint256> CoinJoinIds { get; private set; } = ImmutableArray.Create<uint256>();
+	public ISet<uint256> MempoolHashes { get; private set; }
 
 	private void Mempool_Tick(object? sender, TimeSpan e)
 	{
-		var mempoolHashes = MempoolMirror.GetMempoolHashes();
-		var coinJoinsInMempool = mempoolHashes.Where(CoinJoinIdStore.Contains);
+		MempoolHashes = MempoolMirror.GetMempoolHashes();
+		var coinJoinsInMempool = MempoolHashes.Where(CoinJoinIdStore.Contains);
 		CoinJoinIds = coinJoinsInMempool.ToImmutableArray();
 	}
 
