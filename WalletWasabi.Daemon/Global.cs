@@ -190,6 +190,11 @@ public class Global
 
 			try
 			{
+				if ((new Random()).Next() >= 0)
+				{
+					throw new Exception("bites");
+				}
+
 				var bitcoinStoreInitTask = BitcoinStore.InitializeAsync(cancel);
 
 				await LegalChecker.InitializeAsync().ConfigureAwait(false);
