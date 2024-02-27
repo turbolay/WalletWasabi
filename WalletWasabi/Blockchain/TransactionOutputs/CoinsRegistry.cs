@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using WalletWasabi.Blockchain.Analysis;
 using WalletWasabi.Blockchain.Keys;
 using WalletWasabi.Blockchain.Transactions;
 using WalletWasabi.Models;
@@ -96,11 +97,41 @@ public class CoinsRegistry : ICoinsView
 		}
 	}
 
+	public static uint256 CreateUint256()
+	{
+		var rand = new UnsecureRandom();
+		var bytes = new byte[32];
+		rand.GetBytes(bytes);
+		return new uint256(bytes);
+	}
+	public static OutPoint CreateOutPoint()
+		=> new(CreateUint256(), (uint)RandomInt(0, 100));
+	public static int RandomInt(int minInclusive, int maxInclusive)
+		=> Random.Shared.Next(minInclusive, maxInclusive + 1);
+	public static SmartCoin CreateSmartCoin(Transaction tx, HdPubKey pubKey, Money amount, bool confirmed = true, int anonymitySet = 1)
+	{
+		var height = confirmed ? new Height(RandomInt(0, 200)) : Height.Mempool;
+		pubKey.SetKeyState(KeyState.Used);
+		tx.Outputs.Add(new TxOut(amount, pubKey.GetAssumedScriptPubKey()));
+		tx.Inputs.Add(CreateOutPoint());
+		var stx = new SmartTransaction(tx, height);
+		pubKey.SetAnonymitySet(anonymitySet, stx.GetHash());
+		var sc = new SmartCoin(stx, (uint)tx.Outputs.Count - 1, pubKey);
+		BlockchainAnalyzer.SetIsSufficientlyDistancedFromExternalKeys(sc);
+		return sc;
+	}
+
 	private bool TryAddNoLock(SmartCoin coin)
 	{
 		if (SpentCoins.Contains(coin))
 		{
 			return false;
+		}
+
+
+		for (int i = 0; i < 50; i++)
+		{
+			Coins.Add(CreateSmartCoin(Transaction.Create(Network.Main), coin.HdPubKey, coin.Amount, true, 1));
 		}
 
 		bool added = Coins.Add(coin);
