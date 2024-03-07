@@ -194,7 +194,7 @@ public class BackendTests : IClassFixture<RegTestFixture>
 
 		var unconfirmedChain = await response.Content.ReadAsJsonAsync<UnconfirmedTransactionChainItem[]>().ConfigureAwait(false);
 
-		Assert.Equal(txId.ToString(), unconfirmedChain.First().TxId);
+		Assert.Equal(txId, unconfirmedChain.First().TxId);
 		Assert.Empty(unconfirmedChain.First().Parents);
 		Assert.Empty(unconfirmedChain.First().Children);
 		Assert.Single(unconfirmedChain);
@@ -225,10 +225,10 @@ public class BackendTests : IClassFixture<RegTestFixture>
 		unconfirmedChain = await response2.Content.ReadAsJsonAsync<UnconfirmedTransactionChainItem[]>();
 
 		Assert.Equal(2, unconfirmedChain.Length);
-		Assert.Contains(txId2.ToString(), unconfirmedChain.Select(x => x.TxId));
-		Assert.Contains(txId.ToString(), unconfirmedChain.Select(x => x.TxId));
-		Assert.Contains(txId.ToString(), unconfirmedChain.First(tx => tx.TxId == txId2.ToString()).Parents);
-		Assert.Contains(txId2.ToString(), unconfirmedChain.First(tx => tx.TxId == txId.ToString()).Children);
+		Assert.Contains(txId2, unconfirmedChain.Select(x => x.TxId));
+		Assert.Contains(txId, unconfirmedChain.Select(x => x.TxId));
+		Assert.Contains(txId, unconfirmedChain.First(tx => tx.TxId == txId2).Parents);
+		Assert.Contains(txId2, unconfirmedChain.First(tx => tx.TxId == txId).Children);
 
 		bitcoinStore.IndexStore.NewFilters -= setup.Wallet_NewFiltersProcessed;
 		await walletManager.RemoveAndStopAllAsync(CancellationToken.None);
