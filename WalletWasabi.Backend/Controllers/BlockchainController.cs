@@ -454,12 +454,12 @@ public class BlockchainController : ControllerBase
 			cancellationToken);
 			*/
 
-			var currentTxChainItem = CalculateSingleChainItem(currentTx, mempool, parentTxs, cancellationToken);
-
 			// Get unconfirmed parents and children
 			var mempoolHashes = Global.HostedServices.Get<MempoolMirror>().GetMempoolHashes();
 			var unconfirmedParents = parentTxs.Where(x => mempoolHashes.Contains(x.GetHash())).ToHashSet();
 			var unconfirmedChildrenTxs = mempool.GetSpenderTransactions(currentTx.Outputs.Select((txo, index) => new OutPoint(currentTx, index))).ToHashSet();
+
+			var currentTxChainItem = CalculateSingleChainItem(currentTx, parentTxs, unconfirmedParents, unconfirmedChildrenTxs, cancellationToken);
 
 			toFetchFeeList.Remove(currentTx);
 
@@ -475,7 +475,12 @@ public class BlockchainController : ControllerBase
 		return unconfirmedTxsChainById;
 	}
 
-	private UnconfirmedTransactionChainItem CalculateSingleChainItem(Transaction currentTx, MempoolMirror mempool, IEnumerable<Transaction> parentTxs, CancellationToken cancellationToken)
+	private UnconfirmedTransactionChainItem CalculateSingleChainItem(
+		Transaction currentTx,
+		IEnumerable<Transaction> parentTxs,
+		HashSet<Transaction> unconfirmedParents,
+		HashSet<Transaction> unconfirmedChildrenTxs,
+		CancellationToken cancellationToken)
 	{
 		cancellationToken.ThrowIfCancellationRequested();
 
@@ -491,11 +496,6 @@ public class BlockchainController : ControllerBase
 			var txOut = parentTx.Outputs[prevOut.N];
 			inputs.Add(new Coin(prevOut, txOut));
 		}
-
-		// Get unconfirmed parents and children
-		var mempoolHashes = mempool.GetMempoolHashes();
-		var unconfirmedParents = parentTxs.Where(x => mempoolHashes.Contains(x.GetHash())).ToHashSet();
-		var unconfirmedChildrenTxs = mempool.GetSpenderTransactions(currentTx.Outputs.Select((txo, index) => new OutPoint(currentTx, index))).ToHashSet();
 
 		return new UnconfirmedTransactionChainItem(
 				TxId: currentTx.GetHash().ToString(),
