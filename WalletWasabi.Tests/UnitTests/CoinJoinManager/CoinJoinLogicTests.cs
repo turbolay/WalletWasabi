@@ -1,3 +1,4 @@
+using WalletWasabi.Backend.Models.Responses;
 using Xunit;
 using WalletWasabi.WabiSabi.Client.CoinJoin.Manager.Logic;
 using WalletWasabi.WabiSabi.Client.CoinJoin.Client;
@@ -13,18 +14,29 @@ public class CoinJoinLogicTests
 	{
 		Assert.Equal(
 			CoinjoinError.NotEnoughUnprivateBalance,
-			Assert.Throws<CoinJoinClientException>(() => CoinJoinLogic.AssertStartCoinJoin(
+			Assert.Throws<CoinJoinClientException>(() => CoinJoinLogic.AssertCanStartCoinJoin(
 				walletBlockedByUi: false,
-				wallet: new MockWallet(isUnderPlebStop: true),
+				isUnderPlebStop: true,
 				overridePlebStop: false,
-				wasabiBackendStatusProvider: new MockWasabiBackendStatusProvider(setNullLastResponse: false))).CoinjoinError);
+				lastResponse: new SynchronizeResponse(),
+				out _)).CoinjoinError);
 
 		Assert.Equal(
 			CoinjoinError.BackendNotSynchronized,
-			Assert.Throws<CoinJoinClientException>(() => CoinJoinLogic.AssertStartCoinJoin(walletBlockedByUi: false, new MockWallet(false), true, new MockWasabiBackendStatusProvider(true))).CoinjoinError);
+			Assert.Throws<CoinJoinClientException>(() => CoinJoinLogic.AssertCanStartCoinJoin(
+				walletBlockedByUi: false,
+				isUnderPlebStop: false,
+				overridePlebStop: true,
+				lastResponse: null,
+				out _)).CoinjoinError);
 
 		Assert.Equal(
 			CoinjoinError.UserInSendWorkflow,
-			Assert.Throws<CoinJoinClientException>(() => CoinJoinLogic.AssertStartCoinJoin(walletBlockedByUi: true, new MockWallet(true), true, new MockWasabiBackendStatusProvider(false))).CoinjoinError);
+			Assert.Throws<CoinJoinClientException>(() => CoinJoinLogic.AssertCanStartCoinJoin(
+				walletBlockedByUi: true,
+				isUnderPlebStop: true,
+				overridePlebStop: true,
+				lastResponse: new SynchronizeResponse(),
+				out _)).CoinjoinError);
 	}
 }

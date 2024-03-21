@@ -183,11 +183,12 @@ public class CoinJoinManager : BackgroundService
 
 			async Task<IEnumerable<SmartCoin>> SanityChecksAndGetCoinCandidatesFunc()
 			{
-				var synchronizerResponse = CoinJoinLogic.AssertStartCoinJoin(
+				CoinJoinLogic.AssertCanStartCoinJoin(
 					walletBlockedByUi: WalletsBlockedByUi.ContainsKey(walletToStart.WalletId),
-					wallet: walletToStart,
+					isUnderPlebStop: walletToStart.IsUnderPlebStop,
 					overridePlebStop: startCommand.OverridePlebStop,
-					wasabiBackendStatusProvider: WasabiBackendStatusProvide);
+					lastResponse: WasabiBackendStatusProvide.LastResponse,
+					out var synchronizerResponse);
 
 				var coinCandidates = await SelectCandidateCoinsAsync(walletToStart, synchronizerResponse.BestHeight).ConfigureAwait(false);
 
