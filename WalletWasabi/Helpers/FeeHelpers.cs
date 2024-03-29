@@ -106,8 +106,98 @@ public static class FeeHelpers
 		return foundClosestSolution ? lastCorrectFeeRate : null;
 	}
 
-	public static FeeRate CalculateEffectiveFeeRateOfUnconfirmedChain(List<UnconfirmedTransactionChainItem> unconfirmedTransactionChain)
+	public static FeeRate? CalculateEffectiveFeeRateOfUnconfirmedChain(
+		List<UnconfirmedTransactionChainItem> unconfirmedTransactionChain)
 	{
-		return new(unconfirmedTransactionChain.Sum(x => x.Fee), unconfirmedTransactionChain.Sum(x => x.Size));
+
+		// This data structure is like a linked list with the exception that a Node can have several children.
+		// It can have multiple roots: Every transaction without any parent. The leaves are transactions without any child.
+		var tree = ConstructTransactionsTree(unconfirmedTransactionChain);
+
+		Dictionary<uint256, FeeRate> effectiveFeeRatesOfRoots = new();
+		foreach (var root in tree)
+		{
+			var (totalFee, totalSize) = ComputeFeeRateFromDescendants(root);
+			effectiveFeeRatesOfRoots.Add(root.Value.TxId, new FeeRate(totalFee, totalSize));
+		}
+
+		// TODO: Until there the logic should be more or less correct, after that I'm not sure and my brain is now completely fried.
+		// TODO: I think that we might need to request the as parameter of the function the targetTxId, at least that was my initial intuition.
+
+		return effectiveFeeRatesOfRoots.Values.Min();
 	}
+
+	private static (Money, int) ComputeFeeRateFromDescendants(TreeNode<UnconfirmedTransactionChainItem> root)
+	{
+		// If no children, then immediately return with the values of the current node.
+		if (root.Children.Count == 0)
+		{
+			return (root.Value.Fee, root.Value.Size);
+		}
+
+		// If there are some children, recursively call the function to get the leaves first (bottom up).
+		List<(Money TotalFee, int TotalSize)> childrenFeeRate = root.Children.Select(ComputeFeeRateFromDescendants).ToList();
+
+		// Select only the best chain from each iteration to follow Bitcoin Core's default behaviour.
+		var bestDescendant = childrenFeeRate.MaxBy(x => (double)x.TotalFee.Satoshi / x.TotalSize);
+
+		// If the transaction's fee rate is higher than the fee rate of its best descendant, there is no CPFP.
+		// Otherwise, we have to return the total of the best descendant chain + the current node.
+		return (double)root.Value.Fee.Satoshi / root.Value.Size > (double)bestDescendant.TotalFee.Satoshi / bestDescendant.TotalSize ?
+			(root.Value.Fee, root.Value.Size) :
+			(bestDescendant.TotalFee + root.Value.Fee, bestDescendant.TotalSize + root.Value.Size);
+	}
+
+	// TODO: This method is O(n2), consider mapping the existing nodes in a dictionary to avoid FirstOrDefault lookup and make it O(n).
+	private static List<TreeNode<UnconfirmedTransactionChainItem>> ConstructTransactionsTree(
+		IReadOnlyCollection<UnconfirmedTransactionChainItem> unconfirmedTransactionChain)
+	{
+		// First, add the roots to the tree. Roots are transactions without parents.
+		var tree = unconfirmedTransactionChain
+			.Where(x => x.Parents.Count == 0)
+			.Select(root => new TreeNode<UnconfirmedTransactionChainItem>(root))
+			.ToList();
+
+		// Then, go recursively through all nodes to find and add their children.
+		var nextNodes = new Queue<TreeNode<UnconfirmedTransactionChainItem>>();
+		foreach (var root in tree)
+		{
+			nextNodes.Enqueue(root);
+		}
+
+		while (nextNodes.Count > 0)
+		{
+			var currentNode = nextNodes.Dequeue();
+			var children = unconfirmedTransactionChain.Where(x => x.Parents.Contains(currentNode.Value.TxId));
+			foreach (var child in children)
+			{
+
+				// If the node for child's transaction was not already in the tree, create it, enqueue it to go through all its children, and add it as a child for current node.
+				// If it was already in the tree, just add it as a child, but no need to enqueue it again as it was already done when creating it.
+				var childNode = tree.FirstOrDefault(x => x.Value.TxId == child.TxId);
+				if (childNode == default(TreeNode<UnconfirmedTransactionChainItem>))
+				{
+					childNode = new TreeNode<UnconfirmedTransactionChainItem>(child);
+					nextNodes.Enqueue(childNode);
+				}
+				currentNode.AddChild(childNode);
+			}
+		}
+
+		return tree;
+	}
+
+	public class TreeNode<T>(T value)
+	{
+		public T Value { get; } = value;
+		public List<TreeNode<T>> Children { get; } = new();
+		public List<TreeNode<T>> Parents { get; } = new();
+
+		public void AddChild(TreeNode<T> child)
+		{
+			Children.Add(child);
+			child.Parents.Add(this);
+		}
+	}
+
 }
