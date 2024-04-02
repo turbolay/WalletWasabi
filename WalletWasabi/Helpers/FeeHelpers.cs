@@ -161,25 +161,35 @@ public static class FeeHelpers
 		return false;
 	}
 
-	private static (Money, int) ComputeFeeRateFromDescendants(TreeNode<UnconfirmedTransactionChainItem> root)
+	private static FeeInfo ComputeFeeRateFromDescendants(TreeNode<UnconfirmedTransactionChainItem> root)
 	{
+		if (root.EffectiveFeeInfo is { } alreadyComputedFeeInfo)
+		{
+			return alreadyComputedFeeInfo;
+		}
+
 		// If no children, then immediately return with the values of the current node.
 		if (root.Children.Count == 0)
 		{
-			return (root.Value.Fee, root.Value.Size);
+			// Store the computed info to avoid new computation if you search through this branch again.
+			root.EffectiveFeeInfo = new FeeInfo(root.Value.Fee, root.Value.Size);
+
+			return root.EffectiveFeeInfo;
 		}
 
 		// If there are some children, recursively call the function to get the leaves first (bottom up).
-		List<(Money TotalFee, int TotalSize)> childrenFeeRate = root.Children.Select(ComputeFeeRateFromDescendants).ToList();
+		List<FeeInfo> childrenFeeRate = root.Children.Select(ComputeFeeRateFromDescendants).ToList();
 
 		// Select only the best chain from each iteration to follow Bitcoin Core's default behaviour.
 		var bestDescendant = childrenFeeRate.MaxBy(x => (double)x.TotalFee.Satoshi / x.TotalSize);
 
 		// If the transaction's fee rate is higher than the fee rate of its best descendant, there is no CPFP.
 		// Otherwise, we have to return the total of the best descendant chain + the current node.
-		return (double)root.Value.Fee.Satoshi / root.Value.Size > (double)bestDescendant.TotalFee.Satoshi / bestDescendant.TotalSize ?
-			(root.Value.Fee, root.Value.Size) :
-			(bestDescendant.TotalFee + root.Value.Fee, bestDescendant.TotalSize + root.Value.Size);
+		root.EffectiveFeeInfo = (double)root.Value.Fee.Satoshi / root.Value.Size > (double)bestDescendant!.TotalFee.Satoshi / bestDescendant.TotalSize ?
+			new FeeInfo(root.Value.Fee, root.Value.Size) :
+			new FeeInfo(bestDescendant.TotalFee + root.Value.Fee, bestDescendant.TotalSize + root.Value.Size);
+
+		return root.EffectiveFeeInfo;
 	}
 
 	// TODO: This method is O(n2), consider mapping the existing nodes in a dictionary to avoid FirstOrDefault lookup and make it O(n).
@@ -226,6 +236,7 @@ public static class FeeHelpers
 		public T Value { get; } = value;
 		public List<TreeNode<T>> Children { get; } = new();
 		public List<TreeNode<T>> Parents { get; } = new();
+		public FeeInfo? EffectiveFeeInfo { get; set; }
 
 		public void AddChild(TreeNode<T> child)
 		{
@@ -233,5 +244,7 @@ public static class FeeHelpers
 			child.Parents.Add(this);
 		}
 	}
+
+	public record FeeInfo(Money TotalFee, int TotalSize);
 
 }
