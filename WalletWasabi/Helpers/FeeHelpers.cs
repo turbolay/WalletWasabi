@@ -107,15 +107,20 @@ public static class FeeHelpers
 	}
 
 	public static FeeRate? CalculateEffectiveFeeRateOfUnconfirmedChain(
-		List<UnconfirmedTransactionChainItem> unconfirmedTransactionChain)
+		List<UnconfirmedTransactionChainItem> unconfirmedTransactionChain,
+		uint256 targetTxId)
 	{
 
 		// This data structure is like a linked list with the exception that a Node can have several children.
 		// It can have multiple roots: Every transaction without any parent. The leaves are transactions without any child.
 		var tree = ConstructTransactionsTree(unconfirmedTransactionChain);
 
+		// We do this to avoid accounting for a branch that joins the tree at a lower level than the target tx.
+		// Eg: TX A (1s/vb) and B (100s/vb) are parents of C (3s/vb), if we want effective fee rate of B we have to exclude A.
+		var rootsWithTargetTxInPath = tree.Where(x => ContainsTxInPath(x, targetTxId));
+
 		Dictionary<uint256, FeeRate> effectiveFeeRatesOfRoots = new();
-		foreach (var root in tree)
+		foreach (var root in rootsWithTargetTxInPath)
 		{
 			var (totalFee, totalSize) = ComputeFeeRateFromDescendants(root);
 			effectiveFeeRatesOfRoots.Add(root.Value.TxId, new FeeRate(totalFee, totalSize));
@@ -125,6 +130,35 @@ public static class FeeHelpers
 		// TODO: I think that we might need to request the as parameter of the function the targetTxId, at least that was my initial intuition.
 
 		return effectiveFeeRatesOfRoots.Values.Min();
+	}
+
+	// TODO: Both ContainsTxInPath and ComputeFeeRateFromDescendants are almost the same functions, maybe we could improve the algo.
+	private static bool ContainsTxInPath(TreeNode<UnconfirmedTransactionChainItem> root, uint256 txid)
+	{
+		if (txid == root.Value.TxId)
+		{
+			return true;
+		}
+
+		var nextChildren = root.Children.ToHashSet();
+
+		while (nextChildren.Count > 0)
+		{
+			var currentChild = nextChildren.First();
+			nextChildren.Remove(currentChild);
+
+			if (txid == currentChild.Value.TxId)
+			{
+				return true;
+			}
+
+			foreach (var nextChild in currentChild.Children)
+			{
+				nextChildren.Add(nextChild);
+			}
+		}
+
+		return false;
 	}
 
 	private static (Money, int) ComputeFeeRateFromDescendants(TreeNode<UnconfirmedTransactionChainItem> root)
