@@ -116,7 +116,7 @@ public static class FeeHelpers
 		var tree = ConstructTransactionsTree(unconfirmedTransactionChain);
 
 		// We do this to avoid accounting for a branch that joins the tree at a lower level than the target tx.
-		// Eg: TX A (1s/vb) and B (100s/vb) are parents of C (3s/vb), if we want effective fee rate of B we have to exclude A.
+		// Eg: TX A (1s/vb) and B (100s/vb) are parents of C (3s/vb), if we want effective fee rate of B we don't care about A or C
 		var rootsWithTargetTxInPath = tree.Where(x => ContainsTxInPath(x, targetTxId));
 
 		Dictionary<uint256, FeeRate> effectiveFeeRatesOfRoots = new();

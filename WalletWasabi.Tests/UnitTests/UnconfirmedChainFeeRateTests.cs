@@ -19,7 +19,7 @@ public class UnconfirmedChainFeeRateTests
 			new(uint256.One, Size: 20750, Fee: new Money((long) 631051), Parents: new(), Children: new())
 		};
 
-		var effectiveFeeRate = FeeHelpers.CalculateEffectiveFeeRateOfUnconfirmedChain(unconfirmedChain);
+		var effectiveFeeRate = FeeHelpers.CalculateEffectiveFeeRateOfUnconfirmedChain(unconfirmedChain, uint256.One);
 
 		Assert.Equal(expectedEffectiveFeeRate, effectiveFeeRate);
 	}
@@ -36,7 +36,7 @@ public class UnconfirmedChainFeeRateTests
 			new(uint256.One, size, Fee: new Money((long)2000), Parents: new() { uint256.Zero }, Children: new())
 		};
 
-		var effectiveFeeRate = FeeHelpers.CalculateEffectiveFeeRateOfUnconfirmedChain(unconfirmedChain);
+		var effectiveFeeRate = FeeHelpers.CalculateEffectiveFeeRateOfUnconfirmedChain(unconfirmedChain, uint256.Zero);
 
 		Assert.Equal(expectedEffectiveFeeRate, effectiveFeeRate);
 	}
@@ -54,7 +54,7 @@ public class UnconfirmedChainFeeRateTests
 			new(new uint256(2), Size: 110, Fee: new Money((long) 19800), Parents: new() { uint256.One }, Children: new())
 		};
 
-		var effectiveFeeRate = FeeHelpers.CalculateEffectiveFeeRateOfUnconfirmedChain(unconfirmedChain);
+		var effectiveFeeRate = FeeHelpers.CalculateEffectiveFeeRateOfUnconfirmedChain(unconfirmedChain, uint256.Zero);
 
 		Assert.Equal(expectedEffectiveFeeRate, effectiveFeeRate);
 	}
