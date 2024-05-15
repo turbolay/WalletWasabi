@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using WalletWasabi.Blockchain.Analysis.FeesEstimation;
@@ -8,23 +7,6 @@ namespace WalletWasabi.Tests.UnitTests.Blockchain.Analysis.FeeEstimation;
 
 public class ThirdPartyFeeProviderTests
 {
-	protected class TestFeeProvider : IThirdPartyFeeProvider
-	{
-		public event EventHandler<AllFeeEstimate>? AllFeeEstimateArrived;
-
-		public AllFeeEstimate? LastAllFeeEstimate { get; set; }
-		public bool InError { get; set; }
-		public bool IsPaused { get; set; }
-
-		public void SendSimpleEstimate(int key, int value)
-		{
-			InError = false;
-			AllFeeEstimate fees = new(new Dictionary<int, int>() { { key, value } });
-			LastAllFeeEstimate = fees;
-			AllFeeEstimateArrived?.Invoke(this, fees);
-		}
-	}
-
 	[Fact]
 	public async void PriorityTestsAsync()
 	{
@@ -38,32 +20,37 @@ public class ThirdPartyFeeProviderTests
 
 		int result = 0;
 
-		// we shouldn't move to error mode instantly
+		// We shouldn't move to error mode instantly.
 		feeProvider1.InError = true;
 		thirdPartyFeeProvider.TriggerRound();
 		Assert.False(thirdPartyFeeProvider.InError);
 
-		// more than 4 sec ellapsed, time to move to error mode
-		await Task.Delay(5000);
+		// More than 4 sec elapsed, time to move to error mode.
+		await Task.Delay(5000, cts.Token);
 		thirdPartyFeeProvider.TriggerRound();
 		Assert.True(thirdPartyFeeProvider.InError);
 
-		// first result, accept it, not in error mode anymore
+		// First result, accept it, not in error mode anymore.
 		feeProvider3.SendSimpleEstimate(2, 3);
 		thirdPartyFeeProvider.LastAllFeeEstimate?.Estimations.TryGetValue(2, out result);
 		Assert.False(thirdPartyFeeProvider.InError);
 		Assert.Equal(3, result);
 
-		// higher priority result, we should accept it
+		// Result from a provider with higher priority, we should accept it.
 		feeProvider1.SendSimpleEstimate(2, 1);
 		thirdPartyFeeProvider.LastAllFeeEstimate?.Estimations.TryGetValue(2, out result);
 		Assert.Equal(1, result);
 
-		// lower priority result, we shouldn't accept it
+		// Lower priority result, we shouldn't accept it.
 		result = 0;
 		feeProvider2.SendSimpleEstimate(2, 2);
 		thirdPartyFeeProvider.LastAllFeeEstimate?.Estimations.TryGetValue(2, out result);
 		Assert.Equal(1, result);
+
+		// All providers except 1 should be paused as 1 (highest priority) provided a result.
+		Assert.False(feeProvider1.IsPaused);
+		Assert.True(feeProvider2.IsPaused);
+		Assert.True(feeProvider3.IsPaused);
 
 		await thirdPartyFeeProvider.StopAsync(cts.Token);
 	}
