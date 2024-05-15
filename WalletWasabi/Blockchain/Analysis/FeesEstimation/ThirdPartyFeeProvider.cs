@@ -15,7 +15,7 @@ public class ThirdPartyFeeProvider : PeriodicRunner, IThirdPartyFeeProvider
 {
 	private int _actualFeeProviderIndex = -1;
 	private bool _isPaused;
-	private TimeSpan _admitErrorTimeSpan;
+	private readonly TimeSpan _admitErrorTimeSpan;
 
 	public ThirdPartyFeeProvider(TimeSpan period, ImmutableArray<IThirdPartyFeeProvider> feeProviders, TimeSpan? admitErrorTimeSpan = null)
 		: base(period)
@@ -48,10 +48,10 @@ public class ThirdPartyFeeProvider : PeriodicRunner, IThirdPartyFeeProvider
 
 	private ImmutableArray<IThirdPartyFeeProvider> FeeProviders { get; }
 
-	protected int ActualFeeProviderIndex
+	///<remarks> Aside from the constructor, setter is always guarded by <see cref="Lock"/>.</remarks>
+	private int ActualFeeProviderIndex
 	{
 		get => _actualFeeProviderIndex;
-		// Aside from the constructor always called under the Lock
 		set
 		{
 			if (_actualFeeProviderIndex != value)
@@ -63,7 +63,7 @@ public class ThirdPartyFeeProvider : PeriodicRunner, IThirdPartyFeeProvider
 		}
 	}
 
-	protected DateTimeOffset LastStatusChange { get; set; } = DateTimeOffset.UtcNow;
+	private DateTimeOffset LastStatusChange { get; set; } = DateTimeOffset.UtcNow;
 
 	public override async Task StartAsync(CancellationToken cancellationToken)
 	{
@@ -103,7 +103,8 @@ public class ThirdPartyFeeProvider : PeriodicRunner, IThirdPartyFeeProvider
 				lock (Lock)
 				{
 					int senderIdx = FeeProviders.IndexOf(provider);
-					// If we are on a higher priority fee provider then just drop it silently
+
+					// If we already had a result from a higher priority fee provider then just drop it silently.
 					if (senderIdx != -1 && senderIdx <= ActualFeeProviderIndex)
 					{
 						ActualFeeProviderIndex = senderIdx;
@@ -120,16 +121,16 @@ public class ThirdPartyFeeProvider : PeriodicRunner, IThirdPartyFeeProvider
 		}
 	}
 
-	private bool SetAllFeeEstimateIfLooksBetter(AllFeeEstimate? fees)
+	private void SetAllFeeEstimateIfLooksBetter(AllFeeEstimate? fees)
 	{
 		var current = LastAllFeeEstimate;
 		if (fees is null
 			|| fees == current
 			|| (current is not null && fees.Estimations.Count <= current.Estimations.Count))
 		{
-			return false;
+			return;
 		}
-		return SetAllFeeEstimate(fees);
+		SetAllFeeEstimate(fees);
 	}
 
 	/// <returns>True if changed.</returns>
@@ -146,7 +147,8 @@ public class ThirdPartyFeeProvider : PeriodicRunner, IThirdPartyFeeProvider
 	private void SetPauseStates()
 	{
 		int feeProviderIndex = ActualFeeProviderIndex;
-		// Even in active mode we pause the lower priority fee providers
+
+		// Even in active mode we pause the lower priority fee providers.
 		for (int idx = 0; idx < FeeProviders.Length; idx++)
 		{
 			FeeProviders[idx].IsPaused = IsPaused || idx > feeProviderIndex;
@@ -163,10 +165,11 @@ public class ThirdPartyFeeProvider : PeriodicRunner, IThirdPartyFeeProvider
 		lock (Lock)
 		{
 			bool inError = FeeProviders.Take(ActualFeeProviderIndex + 1).All(f => f.InError);
-			// Let's wait a bit more
+
+			// Let's wait a bit more.
 			if (inError && !InError && DateTimeOffset.UtcNow - LastStatusChange > _admitErrorTimeSpan)
 			{
-				// We are in error mode, all fee provider turned on at once and the successful highest priority fee provider will win
+				// We are in error mode, all fees providers turned on at once and the successful highest priority fee provider will win.
 				InError = true;
 				ActualFeeProviderIndex = FeeProviders.Length - 1;
 				LastStatusChange = DateTimeOffset.UtcNow;
