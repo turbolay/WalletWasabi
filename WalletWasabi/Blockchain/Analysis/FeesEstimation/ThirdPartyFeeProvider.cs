@@ -151,8 +151,15 @@ public class ThirdPartyFeeProvider : PeriodicRunner, IThirdPartyFeeProvider
 		// Even in active mode we pause the lower priority fee providers.
 		for (int idx = 0; idx < FeeProviders.Length; idx++)
 		{
+			var pauseStatusBefore = FeeProviders[idx].IsPaused;
 			FeeProviders[idx].IsPaused = IsPaused || idx > feeProviderIndex;
+
+			if (!pauseStatusBefore && FeeProviders[idx].IsPaused)
+			{
+				FeeProviders[idx].TriggerRound();
+			}
 		}
+
 	}
 
 	protected override Task ActionAsync(CancellationToken cancel)

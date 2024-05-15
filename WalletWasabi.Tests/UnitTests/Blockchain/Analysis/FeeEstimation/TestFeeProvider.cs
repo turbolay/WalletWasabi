@@ -18,4 +18,9 @@ public class TestFeeProvider : IThirdPartyFeeProvider
 		LastAllFeeEstimate = fees;
 		AllFeeEstimateArrived?.Invoke(this, fees);
 	}
+
+	public void TriggerRound()
+	{
+		throw new NotImplementedException();
+	}
 }
