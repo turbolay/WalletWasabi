@@ -7,6 +7,8 @@ namespace WalletWasabi.WebClients.BlockstreamInfo;
 
 public class BlockstreamInfoFeeProvider : PeriodicRunner, IThirdPartyFeeProvider
 {
+	private readonly TimeSpan _intervalAfterSuccess = TimeSpan.FromMinutes(3);
+
 	public BlockstreamInfoFeeProvider(TimeSpan period, BlockstreamInfoClient blockstreamInfoClient) : base(period)
 	{
 		BlockstreamInfoClient = blockstreamInfoClient;
@@ -19,9 +21,11 @@ public class BlockstreamInfoFeeProvider : PeriodicRunner, IThirdPartyFeeProvider
 	public bool InError { get; private set; } = false;
 	public bool IsPaused { get; set; } = false;
 
+	private DateTime DateLastSuccess { get; set; } = DateTime.MinValue;
+
 	protected override async Task ActionAsync(CancellationToken cancel)
 	{
-		if (IsPaused)
+		if (IsPaused || DateTime.UtcNow - DateLastSuccess < _intervalAfterSuccess)
 		{
 			return;
 		}
@@ -35,6 +39,7 @@ public class BlockstreamInfoFeeProvider : PeriodicRunner, IThirdPartyFeeProvider
 				AllFeeEstimateArrived?.Invoke(this, allFeeEstimate);
 			}
 
+			DateLastSuccess = DateTime.UtcNow;
 			InError = false;
 		}
 		catch
