@@ -127,16 +127,16 @@ public class WalletFilterProcessor : BackgroundService
 					{
 						Height lastHeight = KeyManager.GetBestHeight(request.SyncType);
 
-						if (lastHeight == BitcoinStore.SmartHeaderChain.TipHeight)
+						lock (Lock)
 						{
-							Logger.LogInfo("Setting result here");
-							request.Tcs.SetResult();
-							lock (Lock)
+							if (lastHeight == BitcoinStore.SmartHeaderChain.TipHeight)
 							{
+								Logger.LogInfo("Setting result here");
+								request.Tcs.SetResult();
 								SynchronizationRequests.Dequeue();
 								Logger.LogInfo("Dequeeud 1");
+								continue;
 							}
-							continue;
 						}
 
 						uint currentHeight = (uint)lastHeight.Value + 1;
@@ -149,19 +149,19 @@ public class WalletFilterProcessor : BackgroundService
 						KeyManager.SetBestHeight(request.SyncType, new Height(currentHeight), storeToDisk);
 					}
 
-					if (reachedBlockChainTip)
+					lock (Lock)
 					{
-						Logger.LogInfo($"Result is being set here");
-						request.Tcs.SetResult();
-						lock (Lock)
+						if (reachedBlockChainTip)
 						{
-							SynchronizationRequests.Dequeue();
-							Logger.LogInfo("Dequeeud 2");
+							Logger.LogInfo($"Result is being set here");
+								request.Tcs.SetResult();
+								SynchronizationRequests.Dequeue();
+								Logger.LogInfo("Dequeeud 2");
 						}
-					}
-					else
-					{
-						SynchronizationRequestsSemaphore.Release(1);
+						else
+						{
+							SynchronizationRequestsSemaphore.Release(1);
+						}
 					}
 				}
 				catch (Exception ex)
