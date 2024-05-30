@@ -129,10 +129,12 @@ public class WalletFilterProcessor : BackgroundService
 
 						if (lastHeight == BitcoinStore.SmartHeaderChain.TipHeight)
 						{
+							Logger.LogInfo("Setting result here");
 							request.Tcs.SetResult();
 							lock (Lock)
 							{
 								SynchronizationRequests.Dequeue();
+								Logger.LogInfo("Dequeeud 1");
 							}
 							continue;
 						}
@@ -149,10 +151,12 @@ public class WalletFilterProcessor : BackgroundService
 
 					if (reachedBlockChainTip)
 					{
+						Logger.LogInfo($"Result is being set here");
 						request.Tcs.SetResult();
 						lock (Lock)
 						{
 							SynchronizationRequests.Dequeue();
+							Logger.LogInfo("Dequeeud 2");
 						}
 					}
 					else
@@ -182,7 +186,7 @@ public class WalletFilterProcessor : BackgroundService
 		}
 		catch (OperationCanceledException)
 		{
-			Logger.LogDebug("Filter processor's execution was stopped.");
+			Logger.LogWarning("Filter processor's execution was stopped.");
 		}
 		catch (Exception ex)
 		{
@@ -264,6 +268,7 @@ public class WalletFilterProcessor : BackgroundService
 	{
 		try
 		{
+			Logger.LogWarning("Reorg");
 			uint256 invalidBlockHash = invalidFilter.Header.BlockHash;
 			uint newBestHeight = invalidFilter.Header.Height - 1;
 
