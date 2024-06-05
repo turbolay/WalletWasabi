@@ -82,6 +82,11 @@ public partial class BitcoinTabSettingsViewModel : RoutableViewModel
 			return;
 		}
 
+		if (!coordinatorUri.EndsWith('/'))
+		{
+			coordinatorUri += "/";
+		}
+
 		if (!Uri.TryCreate(coordinatorUri, UriKind.Absolute, out _))
 		{
 			errors.Add(ErrorSeverity.Error, "Invalid URI.");
