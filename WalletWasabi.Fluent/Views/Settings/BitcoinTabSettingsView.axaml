@@ -50,7 +50,7 @@
 
     <StackPanel ToolTip.Tip="The client will connect to this coordinator that will manage coinjoins.">
       <TextBlock Text="Coordinator URI" />
-      <TrimmedTextBox Name="CoordinatorTextBox" Text="{Binding CoordinatorUri}">
+      <TrimmedTextBox Classes="copyablePasswordTextBox" Name="CoordinatorTextBox" Text="{Binding CoordinatorUri}">
         <Interaction.Behaviors>
           <TextBoxAutoSelectTextBehavior />
           <DataTriggerBehavior Binding="{Binding FocusCoordinatorUri}" Value="True">

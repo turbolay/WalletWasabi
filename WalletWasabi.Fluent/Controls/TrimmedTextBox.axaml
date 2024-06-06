@@ -1,0 +1,50 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Design.PreviewWith>
+    <TrimmedTextBox Classes="trimmedTextBox"/>
+  </Design.PreviewWith>
+
+  <Styles.Resources>
+    <MenuFlyout x:Key="TrimmedTextBoxDefaultTextBoxContextFlyout">
+      <MenuItem x:Name="TextBoxContextFlyoutCutItem"
+                Header="Cut"
+                Command="{Binding $parent[TrimmedTextBox].Cut}"
+                IsEnabled="{Binding $parent[TrimmedTextBox].CanCutModified}"
+                InputGesture="{x:Static TextBox.CutGesture}" />
+      <MenuItem x:Name="TextBoxContextFlyoutCopyItem"
+                Header="Copy"
+                Command="{Binding $parent[TrimmedTextBox].Copy}"
+                IsEnabled="{Binding $parent[TrimmedTextBox].CanCopyModified}"
+                InputGesture="{x:Static TextBox.CopyGesture}"/>
+      <MenuItem x:Name="TextBoxContextFlyoutPasteItem"
+                Header="Paste"
+                Command="{Binding $parent[TrimmedTextBox].Paste}"
+                IsEnabled="{Binding $parent[TrimmedTextBox].CanPasteModified}"
+                InputGesture="{x:Static TextBox.PasteGesture}"/>
+    </MenuFlyout>
+    <MenuFlyout x:Key="CopyablePasswordTextBoxHorizontalTextBoxContextFlyout"
+                FlyoutPresenterTheme="{StaticResource HorizontalMenuFlyoutPresenter}"
+                ItemContainerTheme="{StaticResource HorizontalMenuItem}">
+      <MenuItem x:Name="HorizontalTextBoxContextFlyoutCutItem"
+                Header="Cut"
+                Command="{Binding $parent[TrimmedTextBox].Cut}"
+                IsEnabled="{Binding $parent[TrimmedTextBox].CanCutModified}"
+                IsVisible="{Binding $parent[TrimmedTextBox].CanCutModified}" />
+      <MenuItem x:Name="HorizontalTextBoxContextFlyoutCopyItem"
+                Header="Copy"
+                Command="{Binding $parent[TrimmedTextBox].Copy}"
+                IsEnabled="{Binding $parent[TrimmedTextBox].CanCopyModified}"
+                IsVisible="{Binding $parent[TrimmedTextBox].CanCopyModified}" />
+      <MenuItem x:Name="HorizontalTextBoxContextFlyoutPasteItem"
+                Header="Paste"
+                Command="{Binding $parent[TrimmedTextBox].ModifiedPasteAsync}"
+                IsEnabled="{Binding $parent[TrimmedTextBox].CanPasteModified}" />
+    </MenuFlyout>
+  </Styles.Resources>
+
+  <Style Selector="TextBox.trimmedTextBox/">
+    <Setter Property="ContextFlyout"
+            Value="{OnFormFactor Desktop={StaticResource TrimmedTextBoxDefaultTextBoxContextFlyout}, Mobile={StaticResource TrimmedTextBoxDefaultTextBoxContextFlyout}}" />
+  </Style>
+
+</Styles>
