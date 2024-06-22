@@ -1,5 +1,4 @@
 using System.Linq;
-using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Windows.Input;
@@ -8,13 +7,22 @@ using DynamicData.Binding;
 using ReactiveUI;
 using WalletWasabi.Fluent.Extensions;
 using WalletWasabi.Fluent.Models.Wallets;
-using WalletWasabi.Fluent.ViewModels.Dialogs.Base;
+using WalletWasabi.Fluent.ViewModels.Navigation;
 using WalletWasabi.Fluent.ViewModels.Wallets.Coins;
 
 namespace WalletWasabi.Fluent.ViewModels.Wallets.Settings;
 
-[NavigationMetaData(Title = "Excluded Coins", NavigationTarget = NavigationTarget.DialogScreen)]
-public partial class ExcludedCoinsViewModel : DialogViewModelBase<Unit>
+[NavigationMetaData(
+	Title = "Excluded Coins",
+	Caption = "Manage coin exclusions from coinjoin",
+	IconName = "nav_wallet_24_regular",
+	Order = 0,
+	Category = "Wallet",
+	Keywords = ["Exclusion", "Exclude", "Coins", "Coinjoin", "Freeze", "UTXO"],
+	NavBarPosition = NavBarPosition.None,
+	NavigationTarget = NavigationTarget.DialogScreen,
+	Searchable = false)]
+public partial class ExcludedCoinsViewModel : RoutableViewModel
 {
 	private readonly IWalletModel _wallet;
 
@@ -26,7 +34,6 @@ public partial class ExcludedCoinsViewModel : DialogViewModelBase<Unit>
 		var initialCoins = wallet.Coins.List.Items.Where(x => x.IsExcludedFromCoinJoin);
 		CoinList = new CoinListViewModel(wallet, initialCoins.ToList(), allowCoinjoiningCoinSelection: false, ignorePrivacyMode: true);
 		SetupCancel(enableCancel: true, enableCancelOnEscape: true, enableCancelOnPressed: true);
-		NextCommand = ReactiveCommand.Create(() => Close());
 		ToggleSelectionCommand = ReactiveCommand.Create(() => SelectAll(!CoinList.Selection.Any()));
 	}
 
