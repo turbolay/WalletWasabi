@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Caching.Memory;
 using WalletWasabi.Backend.Filters;
 using WalletWasabi.Cache;
 using WalletWasabi.WabiSabi.Backend;
@@ -38,9 +39,17 @@ public class WabiSabiController : ControllerBase, IWabiSabiApiRequestHandler
 	[HttpPost("status")]
 	public async Task<RoundStateResponse> GetStatusAsync(RoundStateRequest request, CancellationToken cancellationToken)
 	{
-		var response = await Arena.GetStatusAsync(request, cancellationToken);
-		var medians = CoinJoinFeeRateStatStore.GetDefaultMedians();
-		return response with {CoinJoinFeeRateMedians = medians};
+		async Task<RoundStateResponse> GetRoundStateResponseAsync(RoundStateRequest request, CancellationToken cancellationToken)
+		{
+			var response = await Arena.GetStatusAsync(request, cancellationToken);
+			var medians = CoinJoinFeeRateStatStore.GetDefaultMedians();
+			return response with {CoinJoinFeeRateMedians = medians};
+		}
+		var cacheOptions = new MemoryCacheEntryOptions  {
+			AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+		};
+
+		return await IdempotencyRequestCache.GetCachedResponseAsync(request, action: GetRoundStateResponseAsync, options: cacheOptions, cancellationToken);
 	}
 
 	[HttpPost("connection-confirmation")]
