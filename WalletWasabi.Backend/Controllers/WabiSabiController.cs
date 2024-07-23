@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
 using WalletWasabi.Backend.Filters;
 using WalletWasabi.Cache;
+using WalletWasabi.Logging;
 using WalletWasabi.WabiSabi.Backend;
 using WalletWasabi.WabiSabi.Backend.PostRequests;
 using WalletWasabi.WabiSabi.Backend.Rounds;
@@ -41,6 +42,16 @@ public class WabiSabiController : ControllerBase, IWabiSabiApiRequestHandler
 	{
 		async Task<RoundStateResponse> GetRoundStateResponseAsync(RoundStateRequest request, CancellationToken cancellationToken)
 		{
+			if (Random.Shared.Next(0, 100) == 0)
+			{
+				var str = "";
+				foreach (var checkpoint in request.RoundCheckpoints)
+				{
+					str += $"{checkpoint.RoundId} - {checkpoint.StateId} / ";
+				}
+			}
+
+			Logger.LogWarning($"str");
 			var response = await Arena.GetStatusAsync(request, cancellationToken);
 			var medians = CoinJoinFeeRateStatStore.GetDefaultMedians();
 			return response with {CoinJoinFeeRateMedians = medians};
