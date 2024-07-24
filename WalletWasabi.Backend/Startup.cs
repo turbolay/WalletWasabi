@@ -146,8 +146,6 @@ public class Startup
 		// https://github.com/tpeczek/Demo.AspNetCore.Mvc.CosmosDB/blob/master/Demo.AspNetCore.Mvc.CosmosDB/Middlewares/HeadMethodMiddleware.cs
 		app.UseMiddleware<HeadMethodMiddleware>();
 
-		app.UseResponseCompression();
-
 		app.UseEndpoints(endpoints => endpoints.MapControllers());
 
 		var applicationLifetime = app.ApplicationServices.GetRequiredService<IHostApplicationLifetime>();
