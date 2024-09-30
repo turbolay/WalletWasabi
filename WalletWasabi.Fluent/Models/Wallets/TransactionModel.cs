@@ -39,12 +39,12 @@ public partial class TransactionModel : ReactiveObject
 
 	public bool IsChild { get; set; }
 
-	public required Func<IReadOnlyCollection<OutPoint>> AllInputsFunction{ get; set; }
-	public Lazy<IReadOnlyCollection<OutPoint>> AllInputs => new(AllInputsFunction());
+	public required Func<IReadOnlyCollection<OutPoint>> ForeignInputsFunction{ get; set; }
+	public Lazy<IReadOnlyCollection<OutPoint>> ForeignInputs => new(ForeignInputsFunction());
 	public required IReadOnlyCollection<SmartCoin> WalletInputs { get; set; }
 
-	public required Func<IReadOnlyCollection<OutPoint>> AllOutputsFunction{ get; set; }
-	public Lazy<IReadOnlyCollection<OutPoint>> AllOutputs => new(AllOutputsFunction());
+	public required Func<IReadOnlyCollection<OutPoint>> ForeignOutputsFunction{ get; set; }
+	public Lazy<IReadOnlyCollection<OutPoint>> ForeignOutputs => new(ForeignOutputsFunction());
 	public required IReadOnlyCollection<SmartCoin> WalletOutputs { get; set; }
 	public required Money Amount { get; set; }
 

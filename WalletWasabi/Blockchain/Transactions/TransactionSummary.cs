@@ -21,9 +21,9 @@ public class TransactionSummary
 	public FeeRate? EffectiveFeeRate { get; }
 
 	public Func<string> Hex => () => Transaction.Transaction.ToHex();
-	public Func<IReadOnlyCollection<OutPoint>> AllInputs => () => Transaction.Transaction.Inputs.Select(x => x.PrevOut).ToArray();
+	public Func<IReadOnlyCollection<OutPoint>> ForeignInputs => () => Transaction.Transaction.Inputs.Select(x => x.PrevOut).ToArray();
 	public IReadOnlyCollection<SmartCoin> WalletInputs => Transaction.WalletInputs;
-	public Func<IReadOnlyCollection<OutPoint>> AllOutputs => () => Transaction.ForeignOutputs.Select(x => new OutPoint(GetHash(), x.N)).ToArray();
+	public Func<IReadOnlyCollection<OutPoint>> ForeignOutputs => () => Transaction.ForeignOutputs.Select(x => new OutPoint(GetHash(), x.N)).ToArray();
 	public IReadOnlyCollection<SmartCoin> WalletOutputs => Transaction.WalletOutputs;
 	public DateTimeOffset FirstSeen => Transaction.FirstSeen;
 	public LabelsArray Labels => Transaction.Labels;

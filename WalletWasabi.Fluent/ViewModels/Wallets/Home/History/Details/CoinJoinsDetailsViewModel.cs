@@ -33,16 +33,16 @@ public partial class CoinJoinsDetailsViewModel : RoutableViewModel
 		_transaction = transaction;
 		var allWalletInputs = transaction.WalletInputs.Union(transaction.Children.SelectMany(x => x.WalletInputs)).ToList();
 		var allWalletOutputs = transaction.WalletOutputs.Union(transaction.Children.SelectMany(x => x.WalletOutputs)).ToList();
-		var freshWalletInputs = allWalletInputs.Where(x => !allWalletOutputs.Select(y => y.Outpoint).Contains(x.Outpoint));
-		var finalWalletOutputs = allWalletOutputs.Where(x => !allWalletInputs.Select(y => y.Outpoint).Contains(x.Outpoint));
+		var freshWalletInputs = allWalletInputs.Where(x => !allWalletOutputs.Select(y => y.Outpoint).Contains(x.Outpoint)).OrderByDescending(x => x.Amount).ToList();
+		var finalWalletOutputs = allWalletOutputs.Where(x => !allWalletInputs.Select(y => y.Outpoint).Contains(x.Outpoint)).OrderByDescending(x => x.Amount).ToList();
 
-		var allInputs = transaction.AllInputs.Value.Union(transaction.Children.SelectMany(x => x.AllInputs.Value)).ToList();
-		var allOutputs = transaction.AllOutputs.Value.Union(transaction.Children.SelectMany(x => x.AllOutputs.Value)).ToList();
+		var allInputs = transaction.ForeignInputs.Value.Union(transaction.Children.SelectMany(x => x.ForeignInputs.Value)).ToList();
+		var allOutputs = transaction.ForeignOutputs.Value.Union(transaction.Children.SelectMany(x => x.ForeignOutputs.Value)).ToList();
 		var freshInputs = allInputs.Where(x => !allOutputs.Contains(x));
 		var finalOutputs = allOutputs.Where(x => !allInputs.Contains(x));
 
-		InputList = new CoinjoinCoinListViewModel(freshWalletInputs.OrderByDescending(x => x.Amount), freshInputs.Count());
-		OutputList = new CoinjoinCoinListViewModel(finalWalletOutputs.OrderByDescending(x => x.Amount), finalOutputs.Count());
+		InputList = new CoinjoinCoinListViewModel(freshWalletInputs, freshWalletInputs.Count + freshInputs.Count());
+		OutputList = new CoinjoinCoinListViewModel(finalWalletOutputs, finalWalletOutputs.Count + finalOutputs.Count());
 
 		UiContext = uiContext;
 
