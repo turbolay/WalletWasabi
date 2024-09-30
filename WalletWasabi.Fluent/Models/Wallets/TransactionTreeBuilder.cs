@@ -6,7 +6,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Avalonia.Controls;
 using WalletWasabi.Blockchain.Transactions;
 using WalletWasabi.Fluent.Extensions;
 using WalletWasabi.Fluent.Helpers;
@@ -141,9 +140,9 @@ public class TransactionTreeBuilder
 			BlockHeight = transactionSummary.Height.Type == HeightType.Chain ? transactionSummary.Height.Value : 0,
 			BlockHash = transactionSummary.BlockHash,
 			WalletInputs = transactionSummary.WalletInputs,
-			InputCount = transactionSummary.InputCount,
+			AllInputsFunction = transactionSummary.AllInputs,
 			WalletOutputs = transactionSummary.WalletOutputs,
-			OutputCount = transactionSummary.OutputCount,
+			AllOutputsFunction = transactionSummary.AllOutputs,
 			Fee = transactionSummary.GetFee(),
 			FeeRate = transactionSummary.FeeRate(),
 			ConfirmedTooltip = await GetConfirmationToolTipAsync(status, confirmations, transactionSummary.Transaction, cancellationToken),
@@ -169,9 +168,9 @@ public class TransactionTreeBuilder
 			DateToolTipString = date.ToUserFacingString(),
 			OrderIndex = index,
 			WalletInputs = transactionSummary.WalletInputs,
-			InputCount = transactionSummary.InputCount,
+			AllInputsFunction = transactionSummary.AllInputs,
 			WalletOutputs = transactionSummary.WalletOutputs,
-			OutputCount = transactionSummary.OutputCount,
+			AllOutputsFunction = transactionSummary.AllOutputs,
 			Type = TransactionType.CoinjoinGroup,
 			Status = status,
 		};
@@ -194,9 +193,9 @@ public class TransactionTreeBuilder
 			BlockHeight = parent.BlockHeight,
 			BlockHash = parent.BlockHash,
 			WalletInputs = transactionSummary.WalletInputs,
-			InputCount = transactionSummary.InputCount,
+			AllInputsFunction = transactionSummary.AllInputs,
 			WalletOutputs = transactionSummary.WalletOutputs,
-			OutputCount = transactionSummary.OutputCount,
+			AllOutputsFunction = transactionSummary.AllOutputs,
 			ConfirmedTooltip = parent.ConfirmedTooltip,
 			Labels = parent.Labels,
 			CanCancelTransaction = transactionSummary.Transaction.IsCancellable(_wallet.KeyManager),
@@ -295,9 +294,9 @@ public class TransactionTreeBuilder
 			BlockHeight = transactionSummary.Height.Type == HeightType.Chain ? transactionSummary.Height.Value : 0,
 			BlockHash = transactionSummary.BlockHash,
 			WalletInputs = transactionSummary.WalletInputs,
-			InputCount = transactionSummary.InputCount,
+			AllInputsFunction = transactionSummary.AllInputs,
 			WalletOutputs = transactionSummary.WalletOutputs,
-			OutputCount = transactionSummary.OutputCount,
+			AllOutputsFunction = transactionSummary.AllOutputs,
 			ConfirmedTooltip = await GetConfirmationToolTipAsync(status, confirmations, transactionSummary.Transaction, cancellationToken),
 			Fee = transactionSummary.GetFee(),
 			FeeRate = transactionSummary.FeeRate()

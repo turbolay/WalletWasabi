@@ -8,6 +8,7 @@ using NBitcoin;
 using WalletWasabi.Fluent.Models.Wallets;
 using WalletWasabi.Fluent.Models.UI;
 using WalletWasabi.Fluent.ViewModels.Navigation;
+using WalletWasabi.Fluent.ViewModels.Wallets.Coinjoins;
 
 namespace WalletWasabi.Fluent.ViewModels.Wallets.Home.History.Details;
 
@@ -30,6 +31,18 @@ public partial class CoinJoinsDetailsViewModel : RoutableViewModel
 	{
 		_wallet = wallet;
 		_transaction = transaction;
+		var allWalletInputs = transaction.WalletInputs.Union(transaction.Children.SelectMany(x => x.WalletInputs)).ToList();
+		var allWalletOutputs = transaction.WalletOutputs.Union(transaction.Children.SelectMany(x => x.WalletOutputs)).ToList();
+		var freshWalletInputs = allWalletInputs.Where(x => !allWalletOutputs.Select(y => y.Outpoint).Contains(x.Outpoint));
+		var finalWalletOutputs = allWalletOutputs.Where(x => !allWalletInputs.Select(y => y.Outpoint).Contains(x.Outpoint));
+
+		var allInputs = transaction.AllInputs.Value.Union(transaction.Children.SelectMany(x => x.AllInputs.Value)).ToList();
+		var allOutputs = transaction.AllOutputs.Value.Union(transaction.Children.SelectMany(x => x.AllOutputs.Value)).ToList();
+		var freshInputs = allInputs.Where(x => !allOutputs.Contains(x));
+		var finalOutputs = allOutputs.Where(x => !allInputs.Contains(x));
+
+		InputList = new CoinjoinCoinListViewModel(freshWalletInputs.OrderByDescending(x => x.Amount), freshInputs.Count());
+		OutputList = new CoinjoinCoinListViewModel(finalWalletOutputs.OrderByDescending(x => x.Amount), finalOutputs.Count());
 
 		UiContext = uiContext;
 
@@ -39,6 +52,9 @@ public partial class CoinJoinsDetailsViewModel : RoutableViewModel
 		ConfirmationTime = Task.Run(() => wallet.Transactions.TryEstimateConfirmationTimeAsync(transaction, CancellationToken.None)).Result;
 		IsConfirmationTimeVisible = ConfirmationTime.HasValue && ConfirmationTime != TimeSpan.Zero;
 	}
+
+	public CoinjoinCoinListViewModel InputList { get; }
+	public CoinjoinCoinListViewModel OutputList { get; }
 
 	public TimeSpan? ConfirmationTime { get; set; }
 

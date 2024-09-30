@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using NBitcoin;
 using WalletWasabi.Blockchain.Analysis.Clustering;
 using WalletWasabi.Blockchain.TransactionOutputs;
@@ -20,9 +21,9 @@ public class TransactionSummary
 	public FeeRate? EffectiveFeeRate { get; }
 
 	public Func<string> Hex => () => Transaction.Transaction.ToHex();
-	public int InputCount => Transaction.WalletInputs.Count + Transaction.ForeignInputs.Count;
+	public Func<IReadOnlyCollection<OutPoint>> AllInputs => () => Transaction.Transaction.Inputs.Select(x => x.PrevOut).ToArray();
 	public IReadOnlyCollection<SmartCoin> WalletInputs => Transaction.WalletInputs;
-	public int OutputCount => Transaction.WalletOutputs.Count + Transaction.ForeignOutputs.Count;
+	public Func<IReadOnlyCollection<OutPoint>> AllOutputs => () => Transaction.ForeignOutputs.Select(x => new OutPoint(GetHash(), x.N)).ToArray();
 	public IReadOnlyCollection<SmartCoin> WalletOutputs => Transaction.WalletOutputs;
 	public DateTimeOffset FirstSeen => Transaction.FirstSeen;
 	public LabelsArray Labels => Transaction.Labels;
