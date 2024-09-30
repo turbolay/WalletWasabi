@@ -341,8 +341,14 @@
               <ToggleButton Theme="{StaticResource FluentTreeViewExpandCollapseChevron}"
                             Focusable="False"
                             IsChecked="{TemplateBinding IsExpanded, Mode=TwoWay}"
-                            IsVisible="{TemplateBinding ShowExpander}"
-                            Cursor="Hand" />
+                            Cursor="Hand">
+                <ToggleButton.IsVisible>
+                  <MultiBinding Converter="{x:Static BoolConverters.And}">
+                    <Binding Path="ShowExpander" RelativeSource="{RelativeSource TemplatedParent}" />
+                    <Binding Path="!IsChild" />
+                  </MultiBinding>
+                </ToggleButton.IsVisible>
+              </ToggleButton>
             </Border>
             <Decorator Name="PART_Content" />
           </DockPanel>
