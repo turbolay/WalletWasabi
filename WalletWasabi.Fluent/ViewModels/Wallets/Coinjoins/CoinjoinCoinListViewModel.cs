@@ -17,7 +17,11 @@ public class CoinjoinCoinListViewModel : ViewModelBase, IDisposable
 		{
 			coin.IsChild = true;
 		}
-		coinItems.Last().IsLastChild = true;
+
+		if (coinItems.Count > 0)
+		{
+			coinItems.Last().IsLastChild = true;
+		}
 
 		var parentItem = new CoinjoinCoinViewModel(coinItems.ToArray(), totalCoinsOnSideCount);
 		coinItems.Insert(0, parentItem);
