@@ -2,6 +2,7 @@ using NBitcoin;
 using ReactiveUI;
 using System.Collections.Generic;
 using WalletWasabi.Blockchain.Analysis.Clustering;
+using WalletWasabi.Blockchain.TransactionOutputs;
 
 namespace WalletWasabi.Fluent.Models.Wallets;
 
@@ -38,6 +39,10 @@ public partial class TransactionModel : ReactiveObject
 
 	public bool IsChild { get; set; }
 
+	public required int InputCount { get; set; }
+	public required IReadOnlyCollection<SmartCoin> WalletInputs { get; set; }
+	public required int OutputCount { get; set; }
+	public required IReadOnlyCollection<SmartCoin> WalletOutputs { get; set; }
 	public required Money Amount { get; set; }
 
 	public Money DisplayAmount => GetAmount();
