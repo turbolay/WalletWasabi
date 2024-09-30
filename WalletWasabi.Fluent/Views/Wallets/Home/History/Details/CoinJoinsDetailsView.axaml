@@ -49,11 +49,11 @@
             <ColumnDefinition Width="*"/>
           </Grid.ColumnDefinitions>
 
-          <TextBlock Grid.Column="0" Text="Inputs" HorizontalAlignment="Center"/>
-          <TextBlock Grid.Column="1" Text="Outputs" HorizontalAlignment="Center"/>
+          <TextBlock Grid.Column="0" Text="Inputs" FontSize="14" FontWeight="Bold" HorizontalAlignment="Center"/>
+          <TextBlock Grid.Column="1" Text="Outputs" FontSize="14" FontWeight="Bold" HorizontalAlignment="Center"/>
         </Grid>
 
-        <Grid Margin="0 15 0 0">
+        <Grid Margin="0 10 0 0">
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="*"/>

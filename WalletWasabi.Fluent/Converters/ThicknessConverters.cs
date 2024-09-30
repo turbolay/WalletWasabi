@@ -13,5 +13,5 @@ public class ThicknessConverters
 		new FuncValueConverter<bool, Thickness>(x => x ? new Thickness(8, 0, 0, 0) : new Thickness(0, 0, 0, 0));
 
 	public static readonly IValueConverter ApplyCoinjoinAmountMargins =
-		new FuncValueConverter<bool, Thickness>(x => x ? new Thickness(-45, 0, 0, 0) : new Thickness(-30, 0, 0, 0));
+		new FuncValueConverter<bool, Thickness>(x => x ? new Thickness(-52, 0, 0, 0) : new Thickness(-30, 0, 0, 0));
 }
