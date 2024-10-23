@@ -437,91 +437,93 @@ KEYCHAIN_PATH="$HOME/Library/Keychains/$KEYCHAIN_NAME"
 KEYCHAIN_PASSWORD="hello123"
 
 # Create temporary keychain
-security create-keychain -p ${KEYCHAIN_PASSWORD} ${KEYCHAIN_NAME}
-security set-keychain-settings ${KEYCHAIN_NAME}
-security unlock-keychain -p ${KEYCHAIN_PASSWORD} ${KEYCHAIN_NAME}
-security list-keychains -s ${KEYCHAIN_NAME}
+security create-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_NAME}"
+security set-keychain-settings "${KEYCHAIN_NAME}"
+security unlock-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_NAME}"
+security list-keychains -s "${KEYCHAIN_NAME}"
 
 # Import the certificate and private key into the temporary keychain
-security import ${CERT_PATH} -k ${KEYCHAIN_PATH} -T /usr/bin/codesign
-security import ${P12_PATH} -k ${KEYCHAIN_PATH} -P ${MAC_P12_PASSWORD} -T /usr/bin/codesign
+security import "${CERT_PATH}" -k "${KEYCHAIN_PATH}" -T /usr/bin/codesign
+security import "${P12_PATH}" -k "${KEYCHAIN_PATH}" -P "${MAC_P12_PASSWORD}" -T /usr/bin/codesign
 
 # Grant access to the certificate and private key without a prompt
-security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+security set-key-partition-list -S apple-tool:,apple: -k "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
 
 # Create notary profile
-xcrun notarytool store-credentials ${PROFILE_NAME} --apple-id ${MAC_APPLEID} --team-id ${MAC_TEAMID} --password ${MAC_APPLEPSSWD}
+xcrun notarytool store-credentials "${PROFILE_NAME}" --apple-id "${MAC_APPLEID}" --team-id "${MAC_TEAMID}" --password "${MAC_APPLEPSSWD}"
 
 # Signing all files in order (wassabee at the end)
-SIGN_ARGUMENTS="--sign ${MAC_TEAMID} --verbose --force --options runtime --timestamp --entitlements $ENTITLEMENTS_PATH"
+SIGN_ARGUMENTS="--sign ${MAC_TEAMID} --verbose --force --options runtime --timestamp --entitlements ${ENTITLEMENTS_PATH} --keychain ${KEYCHAIN_PATH}"
+
 ALL_FILES=("${NON_EXECUTABLES[@]}" "${EXECUTABLES[@]}")
 for file in "${ALL_FILES[@]}"; do
-  codesign $SIGN_ARGUMENTS "$file"
+  codesign ${SIGN_ARGUMENTS} "$file"
 done
 
+# Verify app signing
 if ! codesign -dv --verbose=4 "$APP_PATH" 2>&1 | grep -q 'Authority=Developer ID Application: zkSNACKs Ltd.'; then
     echo "App signing verification failed"
-    security delete-keychain ${KEYCHAIN_NAME}
+    security delete-keychain "${KEYCHAIN_NAME}"
     exit 1
 fi
 
-# Notarization
+# Create and notarize app archive
 ditto -c -k --keepParent "$APP_PATH" "$APP_NOTARIZE_FILE_PATH"
-
-xcrun notarytool submit --wait --apple-id "${MAC_APPLEID}" -p "WasabiNotarize" "$APP_NOTARIZE_FILE_PATH"
-
-# Stapling
-spctl -a -t exec -vv "$APP_PATH"
-
-# Verification
-if [ $? -ne 0 ]; then
-  echo "App stapling verification failed"
-  security delete-keychain ${KEYCHAIN_NAME}
-  exit 1
+if ! xcrun notarytool submit --wait --apple-id "${MAC_APPLEID}" --keychain-profile "WasabiNotarize" "$APP_NOTARIZE_FILE_PATH" | grep -q "Accepted"; then
+    echo "App notarization failed"
+    security delete-keychain "${KEYCHAIN_NAME}"
+    exit 1
 fi
 
+# Verify app stapling
+if ! spctl -a -t exec -vv "$APP_PATH"; then
+    echo "App stapling verification failed"
+    security delete-keychain "${KEYCHAIN_NAME}"
+    exit 1
+fi
+
+# Set DMG architecture name
 DMG_ARCH_NAME=""
 if [ "$CURRENT_ARCH" = "arm64" ]; then
-  DMG_ARCH_NAME="-arm64"
+    DMG_ARCH_NAME="-arm64"
 fi
 
+# Create DMG paths
 DMG_UNZIPPED_FILE_PATH="$OSX_BUILD_DIR/Wasabi.tmp.dmg"
 DMG_FILE_PATH="$DMG_PATH/$PACKAGE_FILE_NAME_PREFIX$DMG_ARCH_NAME.dmg"
 
-# Create the dmg
+# Create the DMG
 ln -s /Applications "$DMG_PATH"
 hdiutil create "$DMG_UNZIPPED_FILE_PATH" -ov -volname "Wasabi Wallet" -fs HFS+ -srcfolder "$DMG_PATH"
 hdiutil convert "$DMG_UNZIPPED_FILE_PATH" -format UDZO -o "$DMG_FILE_PATH"
 
-codesign $SIGN_ARGUMENTS "$DMG_FILE_PATH"
+# Sign DMG
+codesign ${SIGN_ARGUMENTS} "$DMG_FILE_PATH"
 
+# Verify DMG signing
 if ! codesign -dv --verbose=4 "$DMG_FILE_PATH" 2>&1 | grep -q 'Authority=Developer ID Application: zkSNACKs Ltd.'; then
     echo "DMG signing verification failed"
-    security delete-keychain ${KEYCHAIN_NAME}
+    security delete-keychain "${KEYCHAIN_NAME}"
     exit 1
 fi
 
-# Notarization and verification
-if ! xcrun notarytool submit --wait --apple-id "${MAC_APPLEID}" -p "WasabiNotarize" "$DMG_FILE_PATH" | grep -q "Accepted"; then
+# Notarize DMG
+if ! xcrun notarytool submit --wait --apple-id "${MAC_APPLEID}" --keychain-profile "WasabiNotarize" "$DMG_FILE_PATH" | grep -q "Accepted"; then
     echo "DMG notarization failed"
-    security delete-keychain ${KEYCHAIN_NAME}
+    security delete-keychain "${KEYCHAIN_NAME}"
     exit 1
 fi
 
-# Stapling
+# Staple and verify DMG
 xcrun stapler staple "$DMG_FILE_PATH"
-
-# Verify stapling
-xcrun stapler validate "$DMG_FILE_PATH"
-
-if [ $? -ne 0 ]; then
+if ! xcrun stapler validate "$DMG_FILE_PATH"; then
     echo "DMG stapling verification failed"
-    security delete-keychain ${KEYCHAIN_NAME}
+    security delete-keychain "${KEYCHAIN_NAME}"
     exit 1
 fi
 
-security delete-keychain ${KEYCHAIN_NAME}
-
+# Cleanup and move final DMG
+security delete-keychain "${KEYCHAIN_NAME}"
 mv "$DMG_FILE_PATH" "$PACKAGES_DIR"
 
 done
