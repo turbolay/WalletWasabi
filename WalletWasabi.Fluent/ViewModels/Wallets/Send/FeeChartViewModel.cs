@@ -6,6 +6,8 @@ using ReactiveUI;
 using WalletWasabi.Fluent.Helpers;
 using WalletWasabi.Fluent.MathNet;
 using System.Windows.Input;
+using Microsoft.Extensions.Logging;
+using WalletWasabi.Logging;
 
 namespace WalletWasabi.Fluent.ViewModels.Wallets.Send;
 
@@ -56,6 +58,7 @@ public partial class FeeChartViewModel : ViewModelBase
 	private void UpdateFeeAndEstimate(double confirmationTarget)
 	{
 		CurrentSatoshiPerByte = GetSatoshiPerByte(confirmationTarget);
+		Logger.LogWarning($"{CurrentSatoshiPerByte}");
 		var targetBlock = (int)Math.Ceiling(confirmationTarget);
 		var estimatedTime = TransactionFeeHelper.CalculateConfirmationTime(targetBlock);
 		CurrentConfirmationTargetString = ConfirmationTimeLabel.SliderLabel(estimatedTime);
