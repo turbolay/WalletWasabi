@@ -19,7 +19,7 @@
     </Panel>
   </Design.PreviewWith>
 
-  <Thickness x:Key="TagsBoxBorderPadding">4,4,0,0</Thickness>
+  <Thickness x:Key="TagsBoxBorderPadding">8,0,0,0</Thickness>
 
   <ControlTheme x:Key="{x:Type TagsBox}" TargetType="TagsBox">
     <Setter Property="Background" Value="{DynamicResource TextControlBackground}" />
@@ -69,6 +69,7 @@
               <Panel>
                 <TextBlock Name="PART_Watermark"
                            Opacity="0.5"
+                           Margin="-8 0 0 0"
                            Padding="15 0"
                            VerticalAlignment="Center"
                            Text="{TemplateBinding Watermark}" />
@@ -78,11 +79,14 @@
                               Focusable="False">
                   <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                      <ConcatenatingWrapPanel Focusable="False" VerticalAlignment="Center">
+                      <ConcatenatingWrapPanel Focusable="False"
+                                              VerticalAlignment="Center"
+                                              Margin="-7 5 0 0">
                         <ConcatenatingWrapPanel.ConcatenatedChildren>
                           <TagsBoxAutoCompleteBox x:Name="PART_AutoCompleteBox"
-                                                    ItemsSource="{Binding $parent[TagsBox].Suggestions}"
-                                                    FilterMode="StartsWith" Theme="{StaticResource TagsBoxAutoCompleteBox}" />
+                                                  ItemsSource="{Binding $parent[TagsBox].Suggestions}"
+                                                  FilterMode="StartsWith"
+                                                  Theme="{StaticResource TagsBoxAutoCompleteBox}"/>
                         </ConcatenatingWrapPanel.ConcatenatedChildren>
                       </ConcatenatingWrapPanel>
                     </ItemsPanelTemplate>
@@ -90,8 +94,8 @@
                   <ItemsControl.ItemTemplate>
                     <DataTemplate>
                       <TagControl Content="{Binding .}"
-                                    EnableCounter="{Binding $parent[TagsBox].EnableCounter}"
-                                    EnableDelete="{Binding $parent[TagsBox].EnableDelete}" />
+                                  Margin="8,-3,-7,0" EnableCounter="{Binding $parent[TagsBox].EnableCounter}"
+                                  EnableDelete="{Binding $parent[TagsBox].EnableDelete}" />
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
@@ -103,6 +107,13 @@
     </Setter>
 
     <Setter Property="(ScrollViewer.HorizontalScrollBarVisibility)" Value="Disabled" />
+
+    <Style Selector="^:pointerover /template/ TextBlock#PART_Watermark">
+      <Setter Property="Opacity" Value="0.3"/>
+    </Style>
+    <Style Selector="^:focus-within /template/ TextBlock#PART_Watermark">
+      <Setter Property="Opacity" Value="0.2"/>
+    </Style>
 
     <Style Selector="^:focus-within /template/ Border#PART_Border">
       <Setter Property="BorderBrush" Value="{DynamicResource TextControlBorderBrushFocused}"/>

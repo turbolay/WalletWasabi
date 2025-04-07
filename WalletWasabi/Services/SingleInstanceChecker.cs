@@ -76,6 +76,7 @@ public class SingleInstanceChecker : BackgroundService, IAsyncDisposable
 	/// <returns>true if this is the only instance running; otherwise false.</returns>
 	private async Task<bool> CanRunAsSingleInstanceAsync()
 	{
+		return true;
         ObjectDisposedException.ThrowIf(_disposeCts.IsCancellationRequested, this);
 
 		try

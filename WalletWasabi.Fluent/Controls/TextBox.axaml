@@ -93,6 +93,10 @@
       </ControlTemplate>
     </Setter>
 
+    <Style Selector="^">
+      <Setter Property="MinHeight" Value="42" />
+    </Style>
+
     <Style Selector="^/template/ Border#PART_BorderElement">
       <Setter Property="CornerRadius" Value="4" />
     </Style>

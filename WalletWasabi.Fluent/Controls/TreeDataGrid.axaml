@@ -23,6 +23,7 @@
   </Design.PreviewWith>
 
   <!-- TreeDataGridRow: Generic -->
+  <Thickness x:Key="TreeDataGridMarginFix">0 0 -2 0</Thickness>
 
   <ControlTheme x:Key="GenericTreeDataGridRow" TargetType="TreeDataGridRow">
 
@@ -32,12 +33,12 @@
       <ControlTemplate>
         <Border x:Name="PART_SelectionIndicator">
           <Panel>
-            <Border Name="BackgroundRectangle" />
+            <Border Name="BackgroundRectangle" Margin="{StaticResource TreeDataGridMarginFix}" />
             <TreeDataGridCellsPresenter Name="PART_CellsPresenter"
                                         ElementFactory="{TemplateBinding ElementFactory}"
                                         Items="{TemplateBinding Columns}"
                                         Rows="{TemplateBinding Rows}"
-                                        Margin="0 0 -2 0" />
+                                        Margin="{StaticResource TreeDataGridMarginFix}" />
           </Panel>
         </Border>
       </ControlTemplate>
@@ -166,12 +167,13 @@
                                         ElementFactory="{TemplateBinding ElementFactory}"
                                         Items="{TemplateBinding Columns}"
                                         Rows="{TemplateBinding Rows}"
-                                        Margin="0 0 -2 0" />
+                                        Margin="{StaticResource TreeDataGridMarginFix}" />
             <Border Name="BackgroundRectangle"
                     Classes.selectAnimation="{Binding IsFlashing}"
                     Classes.isChild="{Binding IsChild}"
                     Classes.isLastChild="{Binding IsLastChild}"
-                    IsHitTestVisible="False" />
+                    IsHitTestVisible="False"
+                    Margin="{StaticResource TreeDataGridMarginFix}" />
           </Panel>
         </Border>
       </ControlTemplate>
@@ -290,12 +292,12 @@
             </MultiBinding>
           </Classes.lastChildIsParentSelected>
           <Panel>
-            <Border Name="BackgroundRectangle" />
+            <Border Name="BackgroundRectangle" Margin="{StaticResource TreeDataGridMarginFix}" />
             <TreeDataGridCellsPresenter Name="PART_CellsPresenter"
                                         ElementFactory="{TemplateBinding ElementFactory}"
                                         Items="{TemplateBinding Columns}"
                                         Rows="{TemplateBinding Rows}"
-                                        Margin="0 0 -2 0" />
+                                        Margin="{StaticResource TreeDataGridMarginFix}" />
           </Panel>
         </Border>
       </ControlTemplate>
@@ -316,12 +318,12 @@
             <ExecuteCommandOnDoubleTappedBehavior Command="{Binding NavigateCommand, Mode=OneWay}" />
           </i:Interaction.Behaviors>
           <Panel>
-            <Border Name="BackgroundRectangle" />
+            <Border Name="BackgroundRectangle" Margin="{StaticResource TreeDataGridMarginFix}"/>
             <TreeDataGridCellsPresenter Name="PART_CellsPresenter"
                                         ElementFactory="{TemplateBinding ElementFactory}"
                                         Items="{TemplateBinding Columns}"
                                         Rows="{TemplateBinding Rows}"
-                                        Margin="0 0 -2 0" />
+                                        Margin="{StaticResource TreeDataGridMarginFix}" />
           </Panel>
         </Border>
       </ControlTemplate>
@@ -380,12 +382,12 @@
             </MultiBinding>
           </Classes.lastChildIsParentSelected>
           <Panel>
-            <Border Name="BackgroundRectangle" />
+            <Border Name="BackgroundRectangle" Margin="{StaticResource TreeDataGridMarginFix}" />
             <TreeDataGridCellsPresenter Name="PART_CellsPresenter"
                                         ElementFactory="{TemplateBinding ElementFactory}"
                                         Items="{TemplateBinding Columns}"
                                         Rows="{TemplateBinding Rows}"
-                                        Margin="0 0 -2 0" />
+                                        Margin="{StaticResource TreeDataGridMarginFix}" />
           </Panel>
         </Border>
       </ControlTemplate>
